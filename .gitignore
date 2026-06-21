@@ -46,3 +46,4 @@ dev-server*.log
 prod-server.log
 prod-server.err.log
 smoke_test.log
+test-results/
