@@ -28,6 +28,27 @@ function getConfig(): SnowflakeConfig {
 let connectionPool: snowflake.Connection | null = null;
 let lastFailureTime: number | null = null;
 const FAILURE_COOLDOWN_MS = 5 * 60_000; // Wait 5 min after a connection failure before retrying (prevents account lockout cycles)
+const CONNECT_TIMEOUT_MS = 8_000;
+const QUERY_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+    promise
+      .then((value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+  });
+}
 
 function getConnection(): Promise<snowflake.Connection> {
   if (connectionPool && connectionPool.isUp()) {
@@ -53,7 +74,7 @@ function getConnection(): Promise<snowflake.Connection> {
     application: "CareerLadderAgent",
   });
 
-  return new Promise((resolve, reject) => {
+  return withTimeout(new Promise((resolve, reject) => {
     connection.connect((err, conn) => {
       if (err) {
         console.error("Snowflake connection failed:", err.message);
@@ -65,7 +86,7 @@ function getConnection(): Promise<snowflake.Connection> {
         resolve(conn);
       }
     });
-  });
+  }), CONNECT_TIMEOUT_MS, "Snowflake connection timed out");
 }
 
 export interface QueryResult {
@@ -83,7 +104,7 @@ export async function executeQuery(
 ): Promise<QueryResult> {
   const conn = await getConnection();
 
-  return new Promise((resolve, reject) => {
+  return withTimeout(new Promise((resolve, reject) => {
     conn.execute({
       sqlText: sql,
       binds: binds as snowflake.Binds,
@@ -99,7 +120,7 @@ export async function executeQuery(
         }
       },
     });
-  });
+  }), QUERY_TIMEOUT_MS, "Snowflake query timed out");
 }
 
 /**

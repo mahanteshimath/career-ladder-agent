@@ -10,6 +10,12 @@ function normalizePersona(persona: unknown): "student" | "job_seeker" | "unset" 
     : "job_seeker";
 }
 
+type AuthUserMetadata = {
+  id?: string;
+  tier?: "free" | "basic" | "premium";
+  persona?: "student" | "job_seeker" | "unset";
+};
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Google({
@@ -51,18 +57,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user }) {
       if (!user.email) return false;
 
       // Upsert user on sign-in (non-blocking — allow login even if DB is down)
       try {
-        const existing = await getUserByEmail(user.email);
+        let existing = await getUserByEmail(user.email);
         if (!existing) {
           await createUser({
             email: user.email,
             name: user.name || user.email.split("@")[0],
             imageUrl: user.image || undefined,
           });
+          existing = await getUserByEmail(user.email);
+        }
+
+        if (existing) {
+          const authUser = user as AuthUserMetadata;
+          user.id = String(existing.ID);
+          authUser.tier = String(existing.TIER || "free") as AuthUserMetadata["tier"];
+          authUser.persona = normalizePersona(existing.PERSONA);
         }
       } catch (err) {
         console.error("[auth] Snowflake upsert failed, allowing sign-in anyway:", (err as Error).message);
@@ -71,27 +85,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        // Always set baseline ID from JWT so it's never undefined
-        session.user.id = token.sub || "";
-
-        if (token.sub) {
-          try {
-            const dbUser = await getUserByEmail(session.user.email!);
-            if (dbUser) {
-              session.user.id = String(dbUser.ID);
-              session.user.tier = (String(dbUser.TIER || "free") as typeof session.user.tier);
-              session.user.persona = normalizePersona(dbUser.PERSONA);
-            }
-          } catch (err) {
-            console.error("[auth] Session DB lookup failed:", (err as Error).message);
-          }
-        }
+        session.user.id = String(token.appUserId || token.sub || "");
+        session.user.tier = String(token.tier || "free") as typeof session.user.tier;
+        session.user.persona = normalizePersona(token.persona);
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
+        const authUser = user as AuthUserMetadata;
         token.sub = user.id;
+        token.appUserId = user.id;
+        token.tier = authUser.tier || "free";
+        token.persona = authUser.persona || "job_seeker";
       }
       return token;
     },
