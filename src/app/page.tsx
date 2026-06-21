@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { PricingCards } from "@/components/PricingCards";
 
+const heroPattern =
+  "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.22) 1px, transparent 0)";
+
 export default function HomePage() {
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
       <header className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djZoNnYtNmgtNnptMC0zMHY2aDZ2LTZoLTZ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40" />
+        <div className="absolute inset-0 opacity-40" style={{ backgroundImage: heroPattern, backgroundSize: "60px 60px" }} />
 
         <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium mb-6 border border-white/20">
