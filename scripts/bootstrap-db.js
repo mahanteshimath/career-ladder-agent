@@ -1,14 +1,23 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const snowflake = require("snowflake-sdk");
 snowflake.configure({ logLevel: "ERROR" });
 
+const requiredEnv = (name) => {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+};
+
 const conn = snowflake.createConnection({
-  account: "WJTCVTK-GK24439",
-  username: "MONTY",
-  password: "Monty@143#Monty@143#",
-  role: "ACCOUNTADMIN",
-  warehouse: "COMPUTE_WH",
-  database: "IITJ",
-  schema: "MH",
+  account: requiredEnv("SNOWFLAKE_ACCOUNT"),
+  username: requiredEnv("SNOWFLAKE_USER"),
+  password: requiredEnv("SNOWFLAKE_PASSWORD"),
+  role: process.env.SNOWFLAKE_ROLE,
+  warehouse: requiredEnv("SNOWFLAKE_WAREHOUSE"),
+  database: requiredEnv("SNOWFLAKE_DATABASE"),
+  schema: requiredEnv("SNOWFLAKE_SCHEMA"),
 });
 
 conn.connect((err) => {

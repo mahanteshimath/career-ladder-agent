@@ -12,11 +12,6 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Hide header entirely on dashboard pages (dashboard has its own nav)
-  if (pathname.startsWith("/dashboard")) {
-    return null;
-  }
-
   // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -29,6 +24,11 @@ export function SiteHeader() {
   }, []);
 
   const isAuthenticated = status === "authenticated" && session?.user;
+
+  // Hide header entirely on dashboard pages (dashboard has its own nav)
+  if (pathname.startsWith("/dashboard")) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
@@ -149,18 +149,18 @@ export function SiteHeader() {
             <>
               {/* Guest: Marketing nav */}
               <nav className="hidden md:flex items-center gap-1 mr-2">
-                <a
+                <Link
                   href="/#features"
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   Features
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/#pricing"
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   Pricing
-                </a>
+                </Link>
               </nav>
               <ThemeToggle />
               <Link
