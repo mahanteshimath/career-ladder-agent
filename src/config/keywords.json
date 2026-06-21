@@ -1,0 +1,172 @@
+{
+  "domains": {
+    "computer_science": {
+      "subfields": [
+        "machine_learning",
+        "deep_learning",
+        "natural_language_processing",
+        "computer_vision",
+        "data_science",
+        "software_engineering",
+        "web_development",
+        "cloud_computing",
+        "cybersecurity",
+        "database_systems",
+        "distributed_systems",
+        "algorithms",
+        "artificial_intelligence",
+        "robotics",
+        "iot",
+        "blockchain"
+      ],
+      "skills": [
+        "Python", "Java", "JavaScript", "TypeScript", "C++", "Go", "Rust",
+        "React", "Next.js", "Node.js", "Django", "FastAPI", "Spring Boot",
+        "TensorFlow", "PyTorch", "Scikit-learn", "Pandas", "NumPy",
+        "AWS", "Azure", "GCP", "Docker", "Kubernetes",
+        "PostgreSQL", "MongoDB", "Redis", "Snowflake",
+        "Git", "CI/CD", "Agile", "REST API", "GraphQL",
+        "Linux", "Terraform", "Apache Spark", "Kafka"
+      ]
+    },
+    "data_science": {
+      "subfields": [
+        "statistics",
+        "machine_learning",
+        "data_engineering",
+        "business_intelligence",
+        "data_visualization",
+        "big_data",
+        "analytics"
+      ],
+      "skills": [
+        "Python", "R", "SQL", "Tableau", "Power BI",
+        "Pandas", "NumPy", "Scikit-learn", "TensorFlow", "PyTorch",
+        "Apache Spark", "Hadoop", "Airflow", "dbt",
+        "Statistics", "A/B Testing", "Hypothesis Testing",
+        "Data Modeling", "ETL", "Data Warehousing",
+        "Snowflake", "BigQuery", "Redshift"
+      ]
+    },
+    "mechanical_engineering": {
+      "subfields": [
+        "thermodynamics",
+        "fluid_mechanics",
+        "solid_mechanics",
+        "manufacturing",
+        "robotics",
+        "automotive",
+        "aerospace",
+        "cad_cam",
+        "materials_science"
+      ],
+      "skills": [
+        "SolidWorks", "AutoCAD", "CATIA", "ANSYS", "MATLAB",
+        "Finite Element Analysis", "CFD", "3D Printing",
+        "CNC Programming", "GD&T", "Lean Manufacturing",
+        "Six Sigma", "Project Management", "Thermodynamics",
+        "Heat Transfer", "Machine Design"
+      ]
+    },
+    "electrical_engineering": {
+      "subfields": [
+        "vlsi",
+        "embedded_systems",
+        "power_systems",
+        "signal_processing",
+        "control_systems",
+        "communications",
+        "microelectronics"
+      ],
+      "skills": [
+        "MATLAB", "Simulink", "Verilog", "VHDL", "PCB Design",
+        "Arduino", "Raspberry Pi", "FPGA", "Embedded C",
+        "PLC Programming", "SCADA", "Power Electronics",
+        "Signal Processing", "Circuit Design", "LabVIEW"
+      ]
+    },
+    "business": {
+      "subfields": [
+        "finance",
+        "marketing",
+        "operations",
+        "strategy",
+        "human_resources",
+        "consulting",
+        "entrepreneurship",
+        "supply_chain"
+      ],
+      "skills": [
+        "Financial Modeling", "Excel", "PowerPoint", "SQL",
+        "Tableau", "SAP", "Salesforce", "Google Analytics",
+        "Digital Marketing", "SEO", "Content Strategy",
+        "Project Management", "Agile", "Scrum",
+        "Leadership", "Negotiation", "Strategic Planning"
+      ]
+    },
+    "biomedical": {
+      "subfields": [
+        "bioinformatics",
+        "medical_devices",
+        "pharmaceuticals",
+        "clinical_research",
+        "genomics",
+        "neuroscience"
+      ],
+      "skills": [
+        "R", "Python", "MATLAB", "Bioinformatics Tools",
+        "Statistical Analysis", "Clinical Trials", "GMP",
+        "Cell Culture", "PCR", "ELISA", "Flow Cytometry",
+        "Regulatory Affairs", "FDA Guidelines",
+        "Medical Imaging", "Biostatistics"
+      ]
+    }
+  },
+  "academic_keywords": {
+    "position_types": [
+      "professor",
+      "assistant_professor",
+      "associate_professor",
+      "postdoc",
+      "research_scientist",
+      "lecturer",
+      "fellow",
+      "visiting_faculty"
+    ],
+    "research_areas": [
+      "AI/ML",
+      "NLP",
+      "Computer Vision",
+      "Robotics",
+      "Quantum Computing",
+      "Bioinformatics",
+      "Climate Science",
+      "Materials Science",
+      "Renewable Energy",
+      "Healthcare AI"
+    ]
+  },
+  "industry_keywords": {
+    "job_types": [
+      "full_time",
+      "part_time",
+      "contract",
+      "internship",
+      "remote",
+      "hybrid",
+      "onsite"
+    ],
+    "seniority_levels": [
+      "entry",
+      "junior",
+      "mid",
+      "senior",
+      "lead",
+      "principal",
+      "staff",
+      "director",
+      "vp",
+      "c_level"
+    ]
+  }
+}
