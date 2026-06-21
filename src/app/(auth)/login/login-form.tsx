@@ -3,6 +3,7 @@
 import { signIn, useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getSafeCallbackUrl } from "@/lib/auth/callback-url";
 
 type AuthStep = "email" | "otp";
 
@@ -10,7 +11,9 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
-  const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
+  const baseUrl =
+    typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+  const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"), baseUrl);
   const { status } = useSession();
 
   const [step, setStep] = useState<AuthStep>("email");
@@ -275,22 +278,4 @@ export function LoginForm() {
       </div>
     </div>
   );
-}
-
-function getSafeCallbackUrl(callbackUrl: string | null) {
-  if (!callbackUrl) {
-    return "/dashboard";
-  }
-
-  try {
-    const parsed = new URL(callbackUrl, window.location.origin);
-
-    if (parsed.origin !== window.location.origin) {
-      return "/dashboard";
-    }
-
-    return `${parsed.pathname}${parsed.search}${parsed.hash}` || "/dashboard";
-  } catch {
-    return "/dashboard";
-  }
 }
