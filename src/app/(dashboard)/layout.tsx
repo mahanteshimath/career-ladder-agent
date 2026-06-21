@@ -1,5 +1,6 @@
 import { DashboardNav } from "@/components/DashboardNav";
 import { auth } from "@/lib/auth/config";
+import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
   children,
@@ -7,6 +8,8 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  if (!session) redirect("/login");
+
   const persona = ((session?.user as Record<string, unknown>)?.persona as "student" | "job_seeker") || "job_seeker";
 
   return (

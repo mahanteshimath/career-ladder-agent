@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     return badRequest("CV has not been parsed yet. Upload and parse your CV first.");
   }
 
-  const cvSummary = cvParser.buildSummary(cvParsed);
+  const cvSummary = cvParser.buildSummary(cvParser.normalize(cvParsed as Record<string, unknown>));
   const currentDate = new Date().toISOString().split("T")[0];
 
   try {

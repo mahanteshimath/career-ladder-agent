@@ -63,7 +63,7 @@ export default function CvBuilderPage() {
 
   function updateExperience(idx: number, field: keyof CvExperienceEntry, value: string | string[]) {
     const updated = [...experience];
-    (updated[idx] as Record<string, unknown>)[field] = value;
+    updated[idx] = { ...updated[idx], [field]: value };
     setExperience(updated);
   }
 
@@ -73,7 +73,7 @@ export default function CvBuilderPage() {
 
   function updateEducation(idx: number, field: keyof CvEducationEntry, value: string) {
     const updated = [...education];
-    (updated[idx] as Record<string, unknown>)[field] = value;
+    updated[idx] = { ...updated[idx], [field]: value };
     setEducation(updated);
   }
 

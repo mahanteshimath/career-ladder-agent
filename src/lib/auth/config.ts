@@ -4,6 +4,12 @@ import Credentials from "next-auth/providers/credentials";
 import { getUserByEmail, createUser } from "@/lib/snowflake/queries";
 import { verifyOtp } from "@/lib/auth/otp";
 
+function normalizePersona(persona: unknown): "student" | "job_seeker" | "unset" {
+  return persona === "student" || persona === "job_seeker" || persona === "unset"
+    ? persona
+    : "job_seeker";
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Google({
@@ -34,7 +40,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         return user
-          ? { id: user.ID, email: user.EMAIL, name: user.NAME, image: user.IMAGE_URL }
+          ? {
+              id: String(user.ID),
+              email: String(user.EMAIL),
+              name: String(user.NAME || user.EMAIL),
+              image: user.IMAGE_URL ? String(user.IMAGE_URL) : undefined,
+            }
           : null;
       },
     }),
@@ -67,9 +78,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           try {
             const dbUser = await getUserByEmail(session.user.email!);
             if (dbUser) {
-              session.user.id = dbUser.ID;
-              (session.user as Record<string, unknown>).tier = dbUser.TIER;
-              (session.user as Record<string, unknown>).persona = dbUser.PERSONA || "job_seeker";
+              session.user.id = String(dbUser.ID);
+              session.user.tier = (String(dbUser.TIER || "free") as typeof session.user.tier);
+              session.user.persona = normalizePersona(dbUser.PERSONA);
             }
           } catch (err) {
             console.error("[auth] Session DB lookup failed:", (err as Error).message);

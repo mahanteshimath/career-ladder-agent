@@ -56,8 +56,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cvParsed = cv.PARSED_JSON as Record<string, unknown>;
-    const cvSummary = cvParser.buildSummary(cvParsed as Parameters<typeof cvParser.buildSummary>[0]);
+    const cvParsed =
+      typeof cv.PARSED_JSON === "string"
+        ? JSON.parse(cv.PARSED_JSON)
+        : cv.PARSED_JSON;
+    const cvSummary = cvParser.buildSummary(cvParser.normalize(cvParsed as Record<string, unknown>));
 
     const task = type === "sop" ? "generate_sop" : "generate_cover_letter";
     const payload =

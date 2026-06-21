@@ -42,4 +42,4 @@ next-env.d.ts
 
 # logs
 snowflake.log
-
+dev-server*.log

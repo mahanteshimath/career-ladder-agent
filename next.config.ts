@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
     "pdf-parse",
     "mammoth",
   ],
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   poweredByHeader: false,
   headers: async () => [
     {

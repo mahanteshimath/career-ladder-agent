@@ -81,7 +81,7 @@ export default async function DashboardPage() {
             </>
           )}
           <a
-            href="/dashboard/sop"
+            href="/dashboard/generate"
             className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Generate SOP

@@ -154,6 +154,7 @@ declare module "next-auth" {
       name: string;
       image?: string;
       tier: TierName;
+      persona?: "student" | "job_seeker" | "unset";
     };
   }
 }

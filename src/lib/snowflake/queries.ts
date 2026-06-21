@@ -1,5 +1,7 @@
 import { executeQuery } from "./client";
 
+export type SnowflakeRow = Record<string, unknown>;
+
 // ============================================================
 // USER QUERIES
 // ============================================================
@@ -155,12 +157,14 @@ export async function getUserCvs(userId: string) {
   return result.rows;
 }
 
-export async function getCvById(cvId: string) {
+export async function getCvById(cvId: string, userId?: string) {
+  const conditions = userId ? "ID = ? AND USER_ID = ?" : "ID = ?";
+  const binds = userId ? [cvId, userId] : [cvId];
   const result = await executeQuery(
-    `SELECT * FROM CL_CVS WHERE ID = ?`,
-    [cvId]
+    `SELECT * FROM CL_CVS WHERE ${conditions}`,
+    binds
   );
-  return result.rows[0] || null;
+  return (result.rows[0] as SnowflakeRow | undefined) || null;
 }
 
 // ============================================================
