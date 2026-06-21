@@ -43,3 +43,6 @@ next-env.d.ts
 # logs
 snowflake.log
 dev-server*.log
+prod-server.log
+prod-server.err.log
+smoke_test.log
