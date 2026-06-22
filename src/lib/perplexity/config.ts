@@ -7,7 +7,7 @@ export const PERPLEXITY_API_URL =
   process.env.PERPLEXITY_API_URL || "https://api.perplexity.ai/chat/completions";
 
 export const PERPLEXITY_MODEL =
-  process.env.PERPLEXITY_MODEL || "sonar-deep-research";
+  process.env.PERPLEXITY_MODEL || "sonar-pro";
 
 export const PERPLEXITY_TIMEOUT = 90_000; // 90 seconds — deep research is slow
 
