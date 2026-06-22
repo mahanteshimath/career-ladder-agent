@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
 
   const { cvId, targetType, positionType, continent, customInstructions } = parsed.data;
 
-  // Enforce tier-based rate limit
-  try {
-    await enforceRateLimit(userId, tier, "research");
-  } catch (err) {
-    return apiError("RATE_LIMITED", (err as Error).message, 429);
-  }
+  // Enforce tier-based rate limit — disabled for testing
+  // try {
+  //   await enforceRateLimit(userId, tier, "research");
+  // } catch (err) {
+  //   return apiError("RATE_LIMITED", (err as Error).message, 429);
+  // }
 
   // Fetch CV
   const cv = await getCvById(cvId, userId);

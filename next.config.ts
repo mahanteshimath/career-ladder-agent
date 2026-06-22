@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  eslint: {
+    dirs: ["src/app", "src/components", "src/lib", "src/config", "src/types"],
+  },
   serverExternalPackages: [
     "snowflake-sdk",
     "pdf-parse",

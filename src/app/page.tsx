@@ -29,7 +29,7 @@ export default function HomePage() {
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/login"
+              href="/login?callbackUrl=%2Fdashboard%2Fupload"
               className="inline-flex items-center justify-center bg-white text-indigo-700 px-8 py-3.5 rounded-xl font-semibold text-base hover:bg-gray-50 transition-all shadow-xl shadow-indigo-900/30 hover:shadow-2xl hover:-translate-y-0.5"
             >
               Upload Your CV

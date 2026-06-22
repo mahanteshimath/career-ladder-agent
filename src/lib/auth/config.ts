@@ -21,6 +21,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Use state-based CSRF protection instead of PKCE to avoid
+      // "Invalid code verifier" cookie issues in Auth.js v5 beta on localhost.
+      // Server-side code exchange makes PKCE non-critical here.
+      checks: ["state"],
     }),
     Credentials({
       name: "Email OTP",
@@ -109,4 +113,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  trustHost: true,
 });

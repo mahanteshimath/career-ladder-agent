@@ -12,6 +12,7 @@
     "seed": "tsx scripts/seed-jobs-db.ts"
   },
   "dependencies": {
+    "lucide-react": "^1.21.0",
     "mammoth": "^1.8.0",
     "next": "15.5.19",
     "next-auth": "5.0.0-beta.25",

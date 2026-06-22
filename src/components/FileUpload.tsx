@@ -69,8 +69,8 @@ export function FileUpload({
       onDrop={handleDrop}
       className={`
         border-2 border-dashed rounded-lg p-8 text-center transition-colors
-        ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}
-        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-gray-400"}
+        ${dragActive ? "border-primary bg-primary/5" : "border-border"}
+        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-muted-foreground"}
       `}
     >
       <input
@@ -87,7 +87,7 @@ export function FileUpload({
       >
         <div className="flex flex-col items-center gap-2">
           <svg
-            className="w-10 h-10 text-gray-400"
+            className="w-10 h-10 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -99,16 +99,16 @@ export function FileUpload({
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
             />
           </svg>
-          <p className="text-sm text-gray-600">
-            <span className="font-semibold text-blue-600">Click to upload</span>{" "}
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-primary">Click to upload</span>{" "}
             or drag and drop
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             PDF, DOCX, DOC, TXT (max {maxSizeMb}MB)
           </p>
         </div>
       </label>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   );
 }

@@ -4,15 +4,52 @@
 
 export type TierName = "free" | "basic" | "premium";
 
+export type UserGoal = "job" | "masters" | "phd" | "postdoc" | "undecided";
+export type UserLevel = "fresh_grad" | "1-2yr" | "2-4yr" | "4-6yr" | "6-10yr" | "10+yr";
+
+export interface UserProfile {
+  goal: UserGoal;
+  field: string;
+  level: UserLevel;
+  geoPref?: string[];
+  researchInterests?: string[];
+  detectedAt: string;
+  confirmedByUser: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
   imageUrl?: string;
   tier: TierName;
+  profile?: UserProfile;
+  onboardingComplete: boolean;
   subscriptionExpiresAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ============================================================
+// Evaluation types (Phase 2 - Structured Reports)
+// ============================================================
+
+export interface EvaluationBlock {
+  title: string;
+  content: Record<string, unknown>;
+}
+
+export interface EvaluationResult {
+  id?: string;
+  userId: string;
+  cvId?: string;
+  inputType: "url" | "text";
+  inputContent: string;
+  targetType: UserGoal;
+  overallScore: number;
+  recommendation: "strong_match" | "good_match" | "weak_match" | "skip";
+  blocks: EvaluationBlock[];
+  createdAt?: string;
 }
 
 export interface Cv {

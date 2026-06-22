@@ -1,42 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-const RESEARCH_AREAS = [
-  "Machine Learning", "Deep Learning", "NLP", "Computer Vision",
-  "Robotics", "Data Science", "Artificial Intelligence", "Cybersecurity",
-  "Cloud Computing", "IoT", "Blockchain", "Quantum Computing",
-  "Bioinformatics", "HCI", "Software Engineering", "Networks",
-  "Database Systems", "Algorithms", "Distributed Systems", "Signal Processing",
+type UserGoal = "job" | "masters" | "phd" | "postdoc" | "undecided";
+type UserLevel = "fresh_grad" | "1-2yr" | "2-4yr" | "4-6yr" | "6-10yr" | "10+yr";
+
+interface DetectedProfile {
+  goal: UserGoal;
+  field: string;
+  level: UserLevel;
+  geoPref?: string[];
+  researchInterests?: string[];
+}
+
+const GOAL_OPTIONS: { value: UserGoal; label: string; emoji: string; desc: string }[] = [
+  { value: "job", label: "Industry Job", emoji: "💼", desc: "Full-time, internship, or contract roles" },
+  { value: "masters", label: "Masters Program", emoji: "🎓", desc: "Graduate school applications" },
+  { value: "phd", label: "PhD Position", emoji: "🔬", desc: "Doctoral research positions" },
+  { value: "postdoc", label: "Postdoc / Research", emoji: "📚", desc: "Post-doctoral or research roles" },
+  { value: "undecided", label: "Exploring Options", emoji: "🧭", desc: "Not sure yet — show me everything" },
+];
+
+const LEVEL_OPTIONS: { value: UserLevel; label: string }[] = [
+  { value: "fresh_grad", label: "Fresh Graduate (< 1 year)" },
+  { value: "1-2yr", label: "Early Career (1-2 years)" },
+  { value: "2-4yr", label: "Mid-Early (2-4 years)" },
+  { value: "4-6yr", label: "Mid Career (4-6 years)" },
+  { value: "6-10yr", label: "Senior (6-10 years)" },
+  { value: "10+yr", label: "Expert (10+ years)" },
+];
+
+const FIELD_OPTIONS = [
+  "computer_science", "data_science", "mechanical_engineering", "electrical_engineering",
+  "business", "biomedical", "civil_engineering", "physics", "chemistry",
+  "economics", "design", "other",
 ];
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [persona, setPersona] = useState<"student" | "job_seeker" | null>(null);
-  const [interests, setInterests] = useState<string[]>([]);
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get("edit") === "true";
+
+  const [step, setStep] = useState<"detect" | "confirm">("detect");
+  const [detectedProfile, setDetectedProfile] = useState<DetectedProfile | null>(null);
+  
+  // Form state
+  const [goal, setGoal] = useState<UserGoal>("undecided");
+  const [field, setField] = useState("computer_science");
+  const [customField, setCustomField] = useState("");
+  const [level, setLevel] = useState<UserLevel>("fresh_grad");
+  const [geoPref, setGeoPref] = useState("");
+  const [researchInterests, setResearchInterests] = useState("");
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [profileLoading, setProfileLoading] = useState(isEditMode);
 
-  function toggleInterest(area: string) {
-    setInterests((prev) =>
-      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
-    );
-  }
+  // On mount, load existing profile in edit mode or detected profile for new users
+  useEffect(() => {
+    if (isEditMode) {
+      // Fetch existing profile to pre-fill
+      fetch("/api/user/profile")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data) {
+            const p = data.data;
+            setGoal(p.goal || "undecided");
+            if (FIELD_OPTIONS.includes(p.field)) {
+              setField(p.field);
+            } else if (p.field) {
+              setField("other");
+              setCustomField(p.field);
+            }
+            setLevel(p.level || "fresh_grad");
+            if (p.geoPref?.length) setGeoPref(p.geoPref.join(", "));
+            if (p.researchInterests?.length) setResearchInterests(p.researchInterests.join(", "));
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setProfileLoading(false);
+          setStep("confirm");
+        });
+    } else {
+      const stored = sessionStorage.getItem("detectedProfile");
+      if (stored) {
+        try {
+          const profile = JSON.parse(stored) as DetectedProfile;
+          setDetectedProfile(profile);
+          setGoal(profile.goal);
+          setField(profile.field || "computer_science");
+          setLevel(profile.level);
+          if (profile.geoPref?.length) setGeoPref(profile.geoPref.join(", "));
+          if (profile.researchInterests?.length) setResearchInterests(profile.researchInterests.join(", "));
+          setStep("confirm");
+        } catch { /* ignore parse errors */ }
+      } else {
+        setStep("confirm");
+      }
+    }
+  }, [isEditMode]);
 
   async function handleSubmit() {
-    if (!persona) return;
     setLoading(true);
     setError("");
 
     try {
-      const res = await fetch("/api/user/persona", {
+      const res = await fetch("/api/user/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ persona, researchInterests: persona === "student" ? interests : [] }),
+        body: JSON.stringify({
+          goal,
+          field: field === "other" ? customField.trim() : field,
+          level,
+          geoPref: geoPref ? geoPref.split(",").map((s) => s.trim()).filter(Boolean) : [],
+          researchInterests: researchInterests ? researchInterests.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        }),
       });
       const data = await res.json();
       if (data.success) {
+        sessionStorage.removeItem("detectedProfile");
         router.push("/dashboard");
         router.refresh();
       } else {
@@ -49,95 +133,151 @@ export default function OnboardingPage() {
     }
   }
 
+  if (profileLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-4">
+        <div className="space-y-4">
+          <div className="skeleton h-8 w-64 rounded-lg" />
+          <div className="skeleton h-4 w-96 rounded" />
+          <div className="skeleton h-40 w-full rounded-xl mt-8" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome to Career Ladder!</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-        Tell us about yourself so we can personalize your experience.
+      <h1 className="text-2xl font-bold text-foreground">
+        {isEditMode ? "Edit your profile" : detectedProfile ? "We analyzed your CV" : "Tell us about yourself"}
+      </h1>
+      <p className="text-sm text-muted-foreground mt-2">
+        {isEditMode
+          ? "Update your preferences to get better recommendations."
+          : detectedProfile
+          ? "Here's what we detected. Confirm or adjust to personalize your experience."
+          : "This helps us find the right opportunities for you."}
       </p>
 
-      {/* Persona Selection */}
-      <div className="mt-8">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">I am a...</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button
-            onClick={() => setPersona("student")}
-            className={`p-5 rounded-xl border-2 text-left transition-all ${
-              persona === "student"
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-            }`}
-          >
-            <div className="text-2xl mb-2">🎓</div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Student / Researcher</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Looking for PhD, postdoc, RA positions, or academic opportunities
-            </p>
-          </button>
+      {/* AI detection banner */}
+      {detectedProfile && step === "confirm" && !isEditMode && (
+        <div className="mt-4 p-4 bg-success/10 border border-success/30 rounded-xl">
+          <p className="text-sm text-success font-medium">
+            ✨ AI detected: {detectedProfile.field.replace("_", " ")} • {detectedProfile.level.replace("-", " to ")} experience • Looking for {detectedProfile.goal}
+          </p>
+        </div>
+      )}
 
-          <button
-            onClick={() => setPersona("job_seeker")}
-            className={`p-5 rounded-xl border-2 text-left transition-all ${
-              persona === "job_seeker"
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-            }`}
-          >
-            <div className="text-2xl mb-2">💼</div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Job Seeker / Professional</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Looking for industry jobs, internships, or career transitions
-            </p>
-          </button>
+      {/* Goal Selection */}
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-foreground mb-3">What are you looking for?</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {GOAL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setGoal(opt.value)}
+              className={`p-4 rounded-xl border-2 text-left transition-all ${
+                goal === opt.value
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-muted-foreground/50"
+              }`}
+            >
+              <span className="text-xl">{opt.emoji}</span>
+              <h3 className="font-semibold text-foreground text-sm mt-1">{opt.label}</h3>
+              <p className="text-xs text-muted-foreground">{opt.desc}</p>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Research Interests (only for students) */}
-      {persona === "student" && (
-        <div className="mt-8">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Research Interests</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Select areas you&apos;re interested in (helps us find relevant positions)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {RESEARCH_AREAS.map((area) => (
-              <button
-                key={area}
-                onClick={() => toggleInterest(area)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  interests.includes(area)
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
-              >
-                {area}
-              </button>
-            ))}
-          </div>
-          {interests.length > 0 && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {interests.length} selected
-            </p>
-          )}
+      {/* Field Selection */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-foreground mb-2">Your primary field</h2>
+        <select
+          value={field}
+          onChange={(e) => setField(e.target.value)}
+          className="w-full p-3 rounded-lg border border-border bg-card text-sm text-foreground"
+        >
+          {FIELD_OPTIONS.map((f) => (
+            <option key={f} value={f}>{f.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</option>
+          ))}
+        </select>
+        {field === "other" && (
+          <input
+            type="text"
+            value={customField}
+            onChange={(e) => setCustomField(e.target.value)}
+            placeholder="Enter your field (e.g. Robotics, Biotechnology, Environmental Science)"
+            className="w-full mt-2 p-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground"
+          />
+        )}
+      </div>
+
+      {/* Level Selection */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-foreground mb-2">Experience level</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {LEVEL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setLevel(opt.value)}
+              className={`p-3 rounded-lg border text-left text-sm transition-all ${
+                level === opt.value
+                  ? "border-primary bg-primary/5 font-medium text-foreground"
+                  : "border-border text-muted-foreground hover:border-muted-foreground/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Geography (optional) */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-foreground mb-2">
+          Preferred locations <span className="font-normal text-muted-foreground">(optional)</span>
+        </h2>
+        <input
+          type="text"
+          value={geoPref}
+          onChange={(e) => setGeoPref(e.target.value)}
+          placeholder="e.g. USA, Germany, India"
+          className="w-full p-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {/* Research Interests (for academic goals) */}
+      {(goal === "phd" || goal === "postdoc" || goal === "masters") && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold text-foreground mb-2">
+            Research interests <span className="font-normal text-muted-foreground">(comma-separated)</span>
+          </h2>
+          <input
+            type="text"
+            value={researchInterests}
+            onChange={(e) => setResearchInterests(e.target.value)}
+            placeholder="e.g. Machine Learning, NLP, Computer Vision"
+            className="w-full p-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground"
+          />
         </div>
       )}
 
       {error && (
-        <div className="mt-6 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+        <div className="mt-6 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
           {error}
         </div>
       )}
 
       <button
         onClick={handleSubmit}
-        disabled={!persona || loading}
-        className="mt-8 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        disabled={loading}
+        className="mt-8 w-full px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
       >
-        {loading ? "Saving..." : "Continue to Dashboard →"}
+        {loading ? "Saving..." : isEditMode ? "Save Changes" : "Continue to Dashboard →"}
       </button>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-        You can change this anytime from your settings.
+      <p className="text-xs text-muted-foreground mt-3 text-center">
+        {isEditMode ? "Changes will be reflected immediately." : "You can change these preferences anytime from your dashboard."}
       </p>
     </div>
   );

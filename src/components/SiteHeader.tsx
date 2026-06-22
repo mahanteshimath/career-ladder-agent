@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
+import { Home, Upload, FileEdit, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -31,14 +33,12 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
+    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-card/80 backdrop-blur-lg supports-[backdrop-filter]:bg-card/60">
       <div className="mx-auto max-w-7xl flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <span className="text-sm font-bold text-white">CL</span>
-          </div>
-          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 hidden sm:inline">
+        <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
+          <Logo size={32} />
+          <span className="text-sm font-semibold text-foreground hidden sm:inline group-hover:text-primary transition-colors">
             Career Ladder
           </span>
         </Link>
@@ -50,13 +50,13 @@ export function SiteHeader() {
               <nav className="hidden md:flex items-center gap-1 mr-2">
                 <Link
                   href="/dashboard"
-                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/dashboard/upload"
-                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                 >
                   Upload CV
                 </Link>
@@ -66,17 +66,17 @@ export function SiteHeader() {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
+                  className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 >
                   {session.user.image ? (
                     <img
                       src={session.user.image}
                       alt={session.user.name || "User"}
-                      className="h-8 w-8 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
+                      className="h-8 w-8 rounded-full object-cover ring-2 ring-border"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-2 ring-gray-200 dark:ring-gray-700">
-                      <span className="text-xs font-semibold text-white">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ring-2 ring-border">
+                      <span className="text-xs font-semibold text-primary">
                         {(session.user.name || session.user.email || "U").charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -84,13 +84,13 @@ export function SiteHeader() {
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg ring-1 ring-black/5 dark:ring-white/5 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-card border border-border shadow-lg ring-1 ring-black/5 dark:ring-white/5 py-1 z-50">
                     {/* User Info */}
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    <div className="px-4 py-3 border-b border-border">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {session.user.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {session.user.email}
                       </p>
                     </div>
@@ -99,46 +99,38 @@ export function SiteHeader() {
                     <Link
                       href="/dashboard"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-foreground/80 hover:bg-muted transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
+                      <Home size={16} strokeWidth={1.5} />
                       Dashboard
                     </Link>
                     <Link
                       href="/dashboard/upload"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-foreground/80 hover:bg-muted transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                      </svg>
+                      <Upload size={16} strokeWidth={1.5} />
                       Upload CV
                     </Link>
                     <Link
                       href="/dashboard/drafts"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-foreground/80 hover:bg-muted transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <FileEdit size={16} strokeWidth={1.5} />
                       My Drafts
                     </Link>
 
-                    <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+                    <div className="my-1 border-t border-border" />
 
                     <button
                       onClick={() => {
                         setMenuOpen(false);
                         signOut({ callbackUrl: "/" });
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
+                      <LogOut size={16} strokeWidth={1.5} />
                       Sign out
                     </button>
                   </div>
@@ -151,13 +143,13 @@ export function SiteHeader() {
               <nav className="hidden md:flex items-center gap-1 mr-2">
                 <Link
                   href="/#features"
-                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                 >
                   Features
                 </Link>
                 <Link
                   href="/#pricing"
-                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                 >
                   Pricing
                 </Link>
@@ -165,7 +157,7 @@ export function SiteHeader() {
               <ThemeToggle />
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
+                className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-sm"
               >
                 Sign in
               </Link>

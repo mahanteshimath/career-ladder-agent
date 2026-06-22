@@ -370,6 +370,11 @@ export async function keywordSearch(
   keywords: string[],
   limit: number = 20
 ) {
+  // Guard: empty keywords would produce invalid SQL
+  if (!keywords || keywords.length === 0) {
+    return [];
+  }
+
   const keywordConditions = keywords
     .map(() => `ARRAY_CONTAINS(?::VARIANT, KEYWORDS)`)
     .join(" OR ");
@@ -382,5 +387,68 @@ export async function keywordSearch(
   `;
 
   const result = await executeQuery(sql, [...keywords, limit]);
+  return result.rows;
+}
+
+// ============================================================
+// USER PROFILE QUERIES
+// ============================================================
+
+export async function updateUserProfile(
+  userId: string,
+  profile: object
+) {
+  await executeQuery(
+    `UPDATE CL_USERS 
+     SET PROFILE_JSON = PARSE_JSON(?), ONBOARDING_COMPLETE = TRUE, UPDATED_AT = CURRENT_TIMESTAMP()
+     WHERE ID = ?`,
+    [JSON.stringify(profile), userId]
+  );
+}
+
+export async function getUserProfile(userId: string) {
+  const result = await executeQuery(
+    `SELECT PROFILE_JSON, ONBOARDING_COMPLETE FROM CL_USERS WHERE ID = ?`,
+    [userId]
+  );
+  return result.rows[0] || null;
+}
+
+// ============================================================
+// EVALUATION QUERIES
+// ============================================================
+
+export async function insertEvaluation(data: {
+  userId: string;
+  cvId?: string;
+  inputType: "url" | "text";
+  inputContent: string;
+  targetType: string;
+  evaluationJson: object;
+  overallScore: number;
+  recommendation: string;
+}) {
+  await executeQuery(
+    `INSERT INTO CL_EVALUATIONS (USER_ID, CV_ID, INPUT_TYPE, INPUT_CONTENT, TARGET_TYPE, EVALUATION_JSON, OVERALL_SCORE, RECOMMENDATION)
+     VALUES (?, ?, ?, ?, ?, PARSE_JSON(?), ?, ?)`,
+    [
+      data.userId,
+      data.cvId || null,
+      data.inputType,
+      data.inputContent,
+      data.targetType,
+      JSON.stringify(data.evaluationJson),
+      data.overallScore,
+      data.recommendation,
+    ]
+  );
+}
+
+export async function getUserEvaluations(userId: string, limit: number = 20) {
+  const result = await executeQuery(
+    `SELECT ID, INPUT_TYPE, INPUT_CONTENT, TARGET_TYPE, EVALUATION_JSON, OVERALL_SCORE, RECOMMENDATION, CREATED_AT
+     FROM CL_EVALUATIONS WHERE USER_ID = ? ORDER BY CREATED_AT DESC LIMIT ?`,
+    [userId, limit]
+  );
   return result.rows;
 }

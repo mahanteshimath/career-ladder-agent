@@ -52,7 +52,7 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <div className="h-9 w-9 rounded-lg bg-gray-200 dark:bg-gray-800 animate-pulse" />;
+    return <div className="h-9 w-9 rounded-lg bg-muted animate-pulse" />;
   }
 
   return (
@@ -60,7 +60,7 @@ export function ThemeToggle() {
       <button
         onClick={() => setOpen(!open)}
         aria-label="Toggle theme"
-        className="flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
+        className="flex items-center justify-center h-9 w-9 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm"
       >
         {resolvedTheme === "dark" ? (
           <MoonIcon className="h-[18px] w-[18px]" />
@@ -70,15 +70,15 @@ export function ThemeToggle() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-36 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute right-0 mt-2 w-36 rounded-xl border border-border bg-card shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
           {options.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
               onClick={() => { setTheme(value); setOpen(false); }}
               className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
                 theme === value
-                  ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 font-medium"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  ? "text-primary bg-primary/10 font-medium"
+                  : "text-foreground/80 hover:bg-muted"
               }`}
             >
               <Icon className="h-4 w-4" />

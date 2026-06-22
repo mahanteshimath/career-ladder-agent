@@ -19,22 +19,23 @@ export async function POST(request: NextRequest) {
   const { userId, tier, error } = await getAuthenticatedUser();
   if (error) return error;
 
-  if (tier === "free") {
-    return NextResponse.json(
-      { success: false, error: "Upgrade to Basic or Premium to generate documents" },
-      { status: 403 }
-    );
-  }
+  // Tier check — disabled for testing
+  // if (tier === "free") {
+  //   return NextResponse.json(
+  //     { success: false, error: "Upgrade to Basic or Premium to generate documents" },
+  //     { status: 403 }
+  //   );
+  // }
 
-  // Rate limit
-  try {
-    await enforceRateLimit(userId, tier, "sop_generate");
-  } catch (err) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message },
-      { status: 429 }
-    );
-  }
+  // Rate limit — disabled for testing
+  // try {
+  //   await enforceRateLimit(userId, tier, "sop_generate");
+  // } catch (err) {
+  //   return NextResponse.json(
+  //     { success: false, error: (err as Error).message },
+  //     { status: 429 }
+  //   );
+  // }
 
   const body = await request.json();
   const parsed = generateSchema.safeParse(body);

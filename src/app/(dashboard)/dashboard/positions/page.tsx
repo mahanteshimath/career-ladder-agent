@@ -118,19 +118,19 @@ export default function PositionsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Academic Positions</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+      <h1 className="text-2xl font-bold text-foreground">Academic Positions</h1>
+      <p className="text-sm text-muted-foreground mt-1">
         Browse pre-seeded positions or use AI Research to discover new ones.
       </p>
 
       {/* Tabs */}
-      <div className="mt-4 flex border-b border-gray-200 dark:border-gray-800">
+      <div className="mt-4 flex border-b border-border">
         <button
           onClick={() => setActiveTab("browse")}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "browse"
-              ? "border-blue-600 text-blue-600 dark:text-blue-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           Browse Database
@@ -139,8 +139,8 @@ export default function PositionsPage() {
           onClick={() => setActiveTab("research")}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "research"
-              ? "border-purple-600 text-purple-600 dark:text-purple-400"
-              : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              ? "border-secondary text-secondary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           ✨ AI Research
@@ -220,14 +220,14 @@ export default function PositionsPage() {
 
       {/* Results */}
       {loading ? (
-        <div className="mt-8 flex items-center gap-2 text-gray-500 dark:text-gray-400">
-          <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full" />
+        <div className="mt-8 flex items-center gap-2 text-muted-foreground">
+          <div className="animate-spin w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full" />
           Loading positions...
         </div>
       ) : positions.length === 0 ? (
-        <div className="mt-8 text-center py-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl">
-          <p className="text-gray-500 dark:text-gray-400">No positions found matching your filters.</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Try adjusting your search or filters.</p>
+        <div className="mt-8 text-center py-12 bg-card border border-border rounded-xl">
+          <p className="text-muted-foreground">No positions found matching your filters.</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Try adjusting your search or filters.</p>
         </div>
       ) : (
         <div className="mt-6 space-y-3">

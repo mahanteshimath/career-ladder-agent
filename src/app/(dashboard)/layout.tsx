@@ -15,7 +15,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <DashboardNav persona={persona} />
-      <main className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-y-auto">
+      <main className="flex-1 bg-background p-6 pt-14 lg:pt-6 overflow-y-auto">
         {children}
       </main>
     </div>

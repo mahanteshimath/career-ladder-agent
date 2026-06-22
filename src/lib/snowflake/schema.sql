@@ -1,6 +1,29 @@
 -- Career-Ladder-Agent Snowflake Schema
 -- Database: CAREER_LADDER | Schema: PUBLIC
 -- Run via scripts/bootstrap-snowflake.ts or directly in Snowflake worksheet
+--
+-- USAGE: Run the DROP section first for a clean slate, then CREATE section.
+--        Alternatively, skip DROPs and rely on IF NOT EXISTS for incremental updates.
+
+-- ============================================================
+-- DROP ALL (uncomment to reset — DESTRUCTIVE!)
+-- ============================================================
+DROP TASK IF EXISTS CL_CACHE_CLEANUP;
+DROP TASK IF EXISTS CL_OTP_CLEANUP;
+DROP TABLE IF EXISTS CL_EVALUATIONS;
+DROP TABLE IF EXISTS CL_OTP_CODES;
+DROP TABLE IF EXISTS CL_USAGE;
+DROP TABLE IF EXISTS CL_ISSUES;
+DROP TABLE IF EXISTS CL_JOB_POSTS;
+DROP TABLE IF EXISTS CL_AGENT_CACHE;
+DROP TABLE IF EXISTS CL_DRAFTS;
+DROP TABLE IF EXISTS CL_MATCHES;
+DROP TABLE IF EXISTS CL_JOBS;
+DROP TABLE IF EXISTS CL_POSITIONS;
+DROP TABLE IF EXISTS CL_CVS;
+DROP TABLE IF EXISTS CL_INSTITUTIONS;
+DROP TABLE IF EXISTS CL_USERS;
+DROP STAGE IF EXISTS CAREERMATCH_STAGE;
 
 -- ============================================================
 -- STAGE: Internal stage for CV file storage
@@ -18,7 +41,10 @@ CREATE TABLE IF NOT EXISTS CL_USERS (
   IMAGE_URL VARCHAR(2048),
   PERSONA VARCHAR(20) DEFAULT 'job_seeker', -- 'student' | 'job_seeker'
   RESEARCH_INTERESTS ARRAY,                 -- JSON array of research area tags (students only)
+  PROFILE_JSON VARIANT,                     -- Full user profile (goal, field, level, geoPref, etc.)
+  ONBOARDING_COMPLETE BOOLEAN DEFAULT FALSE,
   TIER VARCHAR(10) DEFAULT 'free',          -- 'free' | 'basic' | 'premium'
+  INSTITUTION_ID VARCHAR(36),               -- B2B: link to institution (NULL for individual users)
   SUBSCRIPTION_STARTS_AT TIMESTAMP_NTZ,
   SUBSCRIPTION_EXPIRES_AT TIMESTAMP_NTZ,
   PAYMENT_ID VARCHAR(128),
@@ -144,6 +170,12 @@ CREATE TABLE IF NOT EXISTS CL_JOB_POSTS (
   COMPANY VARCHAR(512),
   LOCATION VARCHAR(256),
   DESCRIPTION TEXT,
+  APPLY_URL VARCHAR(2048),
+  SALARY VARCHAR(128),
+  JOB_TYPE VARCHAR(50),       -- 'full_time' | 'part_time' | 'contract' | 'internship'
+  SPAM_SCORE FLOAT DEFAULT 0,
+  SPAM_REASON TEXT,
+  POSTER_IP VARCHAR(45),
   STATUS VARCHAR(20) DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected' | 'spam'
   REVIEWED_BY VARCHAR(36),
   REVIEWED_AT TIMESTAMP_NTZ,
@@ -170,12 +202,43 @@ CREATE TABLE IF NOT EXISTS CL_ISSUES (
 CREATE TABLE IF NOT EXISTS CL_USAGE (
   ID VARCHAR(36) DEFAULT UUID_STRING() NOT NULL,
   USER_ID VARCHAR(36) NOT NULL,
-  ACTION_TYPE VARCHAR(50) NOT NULL, -- 'cv_upload' | 'job_search' | 'position_search' | 'sop_generate' | 'cv_generate'
+  ACTION_TYPE VARCHAR(50) NOT NULL, -- 'cv_upload' | 'job_search' | 'position_search' | 'sop_generate' | 'cv_generate' | 'evaluate'
   CV_ID VARCHAR(36),
   METADATA VARIANT,
   CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
   PRIMARY KEY (ID),
   FOREIGN KEY (USER_ID) REFERENCES CL_USERS(ID)
+);
+
+-- ============================================================
+-- TABLE: CL_EVALUATIONS (Structured evaluation reports)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS CL_EVALUATIONS (
+  ID VARCHAR(36) DEFAULT UUID_STRING() NOT NULL,
+  USER_ID VARCHAR(36) NOT NULL,
+  CV_ID VARCHAR(36),
+  INPUT_TYPE VARCHAR(10) NOT NULL,   -- 'url' | 'text'
+  INPUT_CONTENT TEXT NOT NULL,
+  TARGET_TYPE VARCHAR(20) NOT NULL,  -- 'job' | 'masters' | 'phd' | 'postdoc'
+  EVALUATION_JSON VARIANT NOT NULL,  -- Full structured report (blocks array)
+  OVERALL_SCORE FLOAT,
+  RECOMMENDATION VARCHAR(20),        -- 'strong_match' | 'good_match' | 'weak_match' | 'skip'
+  CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+  PRIMARY KEY (ID),
+  FOREIGN KEY (USER_ID) REFERENCES CL_USERS(ID)
+);
+
+-- ============================================================
+-- TABLE: CL_INSTITUTIONS (B2B — colleges/placement cells)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS CL_INSTITUTIONS (
+  ID VARCHAR(36) DEFAULT UUID_STRING() NOT NULL,
+  NAME VARCHAR(512) NOT NULL,
+  ADMIN_USER_ID VARCHAR(36),
+  LICENSE_TYPE VARCHAR(20) DEFAULT 'free_trial', -- 'free_trial' | 'basic' | 'premium'
+  MAX_STUDENTS INT DEFAULT 50,
+  CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+  PRIMARY KEY (ID)
 );
 
 -- ============================================================

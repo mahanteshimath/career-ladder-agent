@@ -5,6 +5,7 @@ import { sopWriter } from "./sop-writer";
 import { skillAnalyzer } from "./skill-analyzer";
 import { searchPositions } from "./position-researcher";
 import { searchJobs } from "./job-researcher";
+import { evaluator } from "./job-evaluator";
 import { upsertPositions, upsertJobs } from "@/lib/snowflake/upsert-research";
 
 export type AgentTask =
@@ -15,7 +16,8 @@ export type AgentTask =
   | "research_jobs"
   | "generate_sop"
   | "generate_cover_letter"
-  | "analyze_skills";
+  | "analyze_skills"
+  | "evaluate";
 
 interface AgentRequest {
   task: AgentTask;
@@ -133,6 +135,16 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
         );
         break;
 
+      case "evaluate":
+        result = await evaluator.evaluate(
+          request.payload.inputContent as string,
+          request.payload.inputType as "url" | "text",
+          request.payload.cvSummary as string,
+          request.payload.targetType as string,
+          request.payload.userProfile as Record<string, unknown> | undefined
+        );
+        break;
+
       default:
         throw new Error(`Unknown agent task: ${request.task}`);
     }
@@ -146,11 +158,14 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
     };
   }
 
-  // Cache the successful result
-  const ttl = getTtlForTask(request.task);
-  await setCachedResponse(cacheKey, result as object, ttl).catch((err) =>
-    console.error("Cache write failed:", err)
-  );
+  // Cache the successful result (skip caching fallback/low-quality results)
+  const isFallback = (result as Record<string, unknown>)?.usedFallback === true;
+  if (!isFallback) {
+    const ttl = getTtlForTask(request.task);
+    await setCachedResponse(cacheKey, result as object, ttl).catch((err) =>
+      console.error("Cache write failed:", err)
+    );
+  }
 
   return {
     success: true,
@@ -178,6 +193,8 @@ function buildCacheKey(request: AgentRequest): string {
       return `${task}:${hashString((payload.cvSummary as string).slice(0, 200))}:${hashString((payload.positionContext as string || payload.jobDescription as string || "").slice(0, 200))}`;
     case "analyze_skills":
       return `skills:${hashString(JSON.stringify(payload).slice(0, 400))}`;
+    case "evaluate":
+      return `evaluate:${hashString((payload.inputContent as string).slice(0, 300))}:${payload.targetType}`;
     default:
       return `${task}:${hashString(JSON.stringify(payload).slice(0, 500))}`;
   }
@@ -197,6 +214,8 @@ function getTtlForTask(task: AgentTask): number {
       return 48; // 2 days
     case "analyze_skills":
       return 24; // 1 day
+    case "evaluate":
+      return 12; // 12 hours — evaluations semi-fresh
     default:
       return 24;
   }

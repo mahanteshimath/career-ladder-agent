@@ -1,4 +1,4 @@
-const config = {
+uesconst config = {
   plugins: {
     "@tailwindcss/postcss": {},
   },

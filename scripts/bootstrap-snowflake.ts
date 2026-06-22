@@ -1,6 +1,6 @@
 /**
  * Bootstrap Snowflake schema — run once to create all tables, stages, and tasks.
- * Usage: npx tsx scripts/bootstrap-snowflake.ts
+ * Usage: npx tsx --env-file=.env scripts/bootstrap-snowflake.ts
  */
 
 import { readFileSync } from "fs";
@@ -15,11 +15,17 @@ async function bootstrap() {
   const schemaPath = resolve(__dirname, "../src/lib/snowflake/schema.sql");
   const schemaSql = readFileSync(schemaPath, "utf-8");
 
-  // Split by semicolons and filter out empty statements
+  // Split by semicolons, strip comment-only lines, filter out empty statements
   const statements = schemaSql
     .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith("--"));
+    .map((s) =>
+      s
+        .split("\n")
+        .filter((line) => !line.trim().startsWith("--"))
+        .join("\n")
+        .trim()
+    )
+    .filter((s) => s.length > 0);
 
   let success = 0;
   let failed = 0;
