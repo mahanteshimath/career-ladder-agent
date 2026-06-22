@@ -210,12 +210,20 @@ export async function getUserMatches(userId: string, limit: number = 50) {
        CASE m.TARGET_TYPE 
          WHEN 'job' THEN j.COMPANY 
          WHEN 'position' THEN p.UNIVERSITY 
-       END AS TARGET_ORG
+       END AS TARGET_ORG,
+       CASE m.TARGET_TYPE 
+         WHEN 'job' THEN j.LOCATION 
+         WHEN 'position' THEN p.COUNTRY 
+       END AS LOCATION,
+       CASE m.TARGET_TYPE 
+         WHEN 'job' THEN LEFT(j.DESCRIPTION, 200)
+         WHEN 'position' THEN LEFT(p.DESCRIPTION, 200) 
+       END AS DESCRIPTION
      FROM CL_MATCHES m
      LEFT JOIN CL_JOBS j ON m.TARGET_TYPE = 'job' AND m.TARGET_ID = j.ID
      LEFT JOIN CL_POSITIONS p ON m.TARGET_TYPE = 'position' AND m.TARGET_ID = p.ID
-     WHERE m.USER_ID = ?
-     ORDER BY m.MATCHED_AT DESC
+     WHERE m.USER_ID = ? AND m.MATCH_METHOD != 'bookmark'
+     ORDER BY m.SCORE DESC, m.MATCHED_AT DESC
      LIMIT ?`,
     [userId, limit]
   );
@@ -370,23 +378,54 @@ export async function keywordSearch(
   keywords: string[],
   limit: number = 20
 ) {
-  // Guard: empty keywords would produce invalid SQL
+  // Guard: empty keywords — return recent entries as fallback
   if (!keywords || keywords.length === 0) {
-    return [];
+    const fallback = await executeQuery(
+      `SELECT * FROM ${table} ORDER BY CREATED_AT DESC LIMIT ?`,
+      [limit]
+    );
+    return fallback.rows;
   }
 
-  const keywordConditions = keywords
-    .map(() => `ARRAY_CONTAINS(?::VARIANT, KEYWORDS)`)
-    .join(" OR ");
+  // Build conditions: exact ARRAY_CONTAINS + fuzzy ILIKE on TITLE/DESCRIPTION
+  const conditions: string[] = [];
+  const binds: (string | number)[] = [];
+
+  for (const kw of keywords) {
+    // Exact match in KEYWORDS array
+    conditions.push(`ARRAY_CONTAINS(?::VARIANT, KEYWORDS)`);
+    binds.push(kw);
+  }
+  for (const kw of keywords) {
+    // Fuzzy match on TITLE
+    conditions.push(`TITLE ILIKE ?`);
+    binds.push(`%${kw}%`);
+  }
+  for (const kw of keywords) {
+    // Fuzzy match on DESCRIPTION
+    conditions.push(`DESCRIPTION ILIKE ?`);
+    binds.push(`%${kw}%`);
+  }
 
   const sql = `
     SELECT * FROM ${table}
-    WHERE ${keywordConditions}
+    WHERE ${conditions.join(" OR ")}
     ORDER BY CREATED_AT DESC
     LIMIT ?
   `;
+  binds.push(limit);
 
-  const result = await executeQuery(sql, [...keywords, limit]);
+  const result = await executeQuery(sql, binds);
+
+  // If still no results, return recent entries as fallback
+  if (result.rows.length === 0) {
+    const fallback = await executeQuery(
+      `SELECT * FROM ${table} ORDER BY CREATED_AT DESC LIMIT ?`,
+      [limit]
+    );
+    return fallback.rows;
+  }
+
   return result.rows;
 }
 

@@ -33,7 +33,7 @@ export async function semanticSearch(
   filters?: Record<string, string>
 ): Promise<{ id: string; score: number; title: string }[]> {
   try {
-    let whereClause = "";
+    let whereClause = "WHERE EMBEDDING IS NOT NULL";
     const binds: (string | number)[] = [queryText.slice(0, 8000), limit];
 
     if (filters) {
@@ -42,7 +42,7 @@ export async function semanticSearch(
           return `${key} = ?`;
         })
         .join(" AND ");
-      whereClause = `WHERE ${conditions}`;
+      whereClause += ` AND ${conditions}`;
       Object.values(filters).forEach((v) => binds.push(v));
     }
 
