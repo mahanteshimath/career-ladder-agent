@@ -491,3 +491,25 @@ export async function getUserEvaluations(userId: string, limit: number = 20) {
   );
   return result.rows;
 }
+
+export async function deleteOlderCvs(userId: string, keepLimit: number = 3) {
+  const cvs = await executeQuery(
+    `SELECT ID FROM CL_CVS WHERE USER_ID = ? ORDER BY UPLOADED_AT DESC`,
+    [userId]
+  );
+
+  if (cvs.rows.length > keepLimit) {
+    const idsToDelete = cvs.rows.slice(keepLimit).map((row) => row.ID as string);
+    if (idsToDelete.length > 0) {
+      const placeholders = idsToDelete.map(() => "?").join(",");
+      await executeQuery(
+        `DELETE FROM CL_MATCHES WHERE CV_ID IN (${placeholders})`,
+        idsToDelete
+      );
+      await executeQuery(
+        `DELETE FROM CL_CVS WHERE ID IN (${placeholders})`,
+        idsToDelete
+      );
+    }
+  }
+}

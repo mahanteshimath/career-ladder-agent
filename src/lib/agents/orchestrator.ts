@@ -158,9 +158,10 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
     };
   }
 
-  // Cache the successful result (skip caching fallback/low-quality results)
+  // Cache the successful result (skip caching fallback/low-quality results/empty arrays)
   const isFallback = (result as Record<string, unknown>)?.usedFallback === true;
-  if (!isFallback) {
+  const isEmptyArray = Array.isArray(result) && result.length === 0;
+  if (!isFallback && !isEmptyArray) {
     const ttl = getTtlForTask(request.task);
     await setCachedResponse(cacheKey, result as object, ttl).catch((err) =>
       console.error("Cache write failed:", err)

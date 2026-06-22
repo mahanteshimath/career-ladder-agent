@@ -2,7 +2,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
 import { orchestrate } from "@/lib/agents/orchestrator";
-import { insertCv, getUserCvs } from "@/lib/snowflake/queries";
+import { insertCv, getUserCvs, deleteOlderCvs } from "@/lib/snowflake/queries";
 import { embedAndStoreCv } from "@/lib/snowflake/embeddings";
 import { extractTextFromFile, sanitizeFilename } from "@/lib/utils/cv-extract";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
       rawText,
       parsedJson: parsedCv,
     });
+
+    // Delete older CVs keeping only the latest 3
+    await deleteOlderCvs(userId, 3);
 
     // Retrieve the newly inserted CV ID
     const userCvs = await getUserCvs(userId);

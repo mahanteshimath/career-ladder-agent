@@ -54,20 +54,23 @@ export default function MatchesPage() {
       if (cvData.success) {
         const list = cvData.data || [];
         setCvs(list);
-        if (list.length > 0 && !selectedCvId) {
-          setSelectedCvId(list[0].ID);
-        }
       }
     } catch {
       setError("Failed to load data.");
     } finally {
       setLoading(false);
     }
-  }, [selectedCvId]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (cvs.length > 0 && !selectedCvId) {
+      setSelectedCvId(cvs[0].ID);
+    }
+  }, [cvs, selectedCvId]);
 
   const handleGenerate = async () => {
     if (!selectedCvId) return;
