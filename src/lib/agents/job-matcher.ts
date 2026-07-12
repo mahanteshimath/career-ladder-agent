@@ -69,7 +69,7 @@ export const jobMatcher = {
   },
 };
 
-function mergeResults(
+export function mergeResults(
   keywordRows: Record<string, unknown>[],
   semanticRows: { id: string; score: number; title: string }[],
   type: "job" | "position"

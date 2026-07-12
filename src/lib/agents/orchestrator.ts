@@ -6,6 +6,7 @@ import { skillAnalyzer } from "./skill-analyzer";
 import { searchPositions } from "./position-researcher";
 import { searchJobs } from "./job-researcher";
 import { evaluator } from "./job-evaluator";
+import { researchLab } from "./lab-researcher";
 import { upsertPositions, upsertJobs } from "@/lib/snowflake/upsert-research";
 
 export type AgentTask =
@@ -17,7 +18,8 @@ export type AgentTask =
   | "generate_sop"
   | "generate_cover_letter"
   | "analyze_skills"
-  | "evaluate";
+  | "evaluate"
+  | "research_lab";
 
 interface AgentRequest {
   task: AgentTask;
@@ -145,6 +147,14 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
         );
         break;
 
+      case "research_lab":
+        result = await researchLab(
+          request.payload.university as string,
+          request.payload.department as string,
+          request.payload.field as string | undefined
+        );
+        break;
+
       default:
         throw new Error(`Unknown agent task: ${request.task}`);
     }
@@ -196,6 +206,8 @@ function buildCacheKey(request: AgentRequest): string {
       return `skills:${hashString(JSON.stringify(payload).slice(0, 400))}`;
     case "evaluate":
       return `evaluate:${hashString((payload.inputContent as string).slice(0, 300))}:${payload.targetType}`;
+    case "research_lab":
+      return `research_lab:${hashString(`${payload.university}|${payload.department}|${payload.field || ""}`)}`;
     default:
       return `${task}:${hashString(JSON.stringify(payload).slice(0, 500))}`;
   }
@@ -217,6 +229,8 @@ function getTtlForTask(task: AgentTask): number {
       return 24; // 1 day
     case "evaluate":
       return 12; // 12 hours — evaluations semi-fresh
+    case "research_lab":
+      return 72; // 3 days — lab/dept info changes slowly
     default:
       return 24;
   }

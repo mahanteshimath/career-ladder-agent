@@ -17,6 +17,19 @@ interface Position {
   DESCRIPTION: string;
 }
 
+interface LabInsights {
+  university: string;
+  department: string;
+  summary: string;
+  qsRanking: string;
+  researchOutput: string;
+  labEnvironment: string;
+  ethicalPractice: string;
+  alumniDestinations: string;
+  notableFaculty: string[];
+  citations: string[];
+}
+
 const POSITION_TYPES = [
   { value: "", label: "All Types" },
   { value: "phd", label: "PhD" },
@@ -46,6 +59,40 @@ export default function PositionsPage() {
   const [continent, setContinent] = useState("");
   const [keyword, setKeyword] = useState("");
   const [searchInput, setSearchInput] = useState("");
+
+  // Lab insights modal
+  const [labPos, setLabPos] = useState<Position | null>(null);
+  const [labData, setLabData] = useState<LabInsights | null>(null);
+  const [labLoading, setLabLoading] = useState(false);
+  const [labError, setLabError] = useState("");
+
+  async function openLabInsights(pos: Position) {
+    setLabPos(pos);
+    setLabData(null);
+    setLabError("");
+    setLabLoading(true);
+    try {
+      const res = await fetch("/api/positions/lab-insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          university: pos.UNIVERSITY,
+          department: pos.DEPARTMENT || "",
+          field: pos.TITLE,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLabData(data.data as LabInsights);
+      } else {
+        setLabError(data.error || "Could not load lab insights.");
+      }
+    } catch {
+      setLabError("Network error while loading lab insights.");
+    } finally {
+      setLabLoading(false);
+    }
+  }
 
   const fetchPositions = useCallback(async () => {
     setLoading(true);
@@ -272,6 +319,12 @@ export default function PositionsPage() {
                   >
                     {savedIds.has(pos.ID) ? "✓ Saved" : "Save"}
                   </button>
+                  <button
+                    onClick={() => openLabInsights(pos)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                  >
+                    ✨ Lab Insights
+                  </button>
                   {pos.SOURCE_URL && (
                     <a
                       href={pos.SOURCE_URL}
@@ -290,6 +343,107 @@ export default function PositionsPage() {
       )}
 
       </> /* end browse tab */
+      )}
+
+      {labPos && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setLabPos(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between p-4 border-b border-border">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-foreground truncate">
+                  Lab Insights — {labPos.UNIVERSITY}
+                </h2>
+                {labPos.DEPARTMENT && (
+                  <p className="text-xs text-muted-foreground truncate">{labPos.DEPARTMENT}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setLabPos(null)}
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto">
+              {labLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+                  <div className="animate-spin w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full" />
+                  Researching the lab — this may take up to a minute...
+                </div>
+              )}
+
+              {labError && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+                  {labError}
+                </div>
+              )}
+
+              {labData && !labLoading && (
+                <div className="space-y-4 text-sm">
+                  {([
+                    ["Overview", labData.summary],
+                    ["QS Ranking", labData.qsRanking],
+                    ["Research Output", labData.researchOutput],
+                    ["Lab Environment", labData.labEnvironment],
+                    ["Ethical Practice", labData.ethicalPractice],
+                    ["Alumni Destinations", labData.alumniDestinations],
+                  ] as const).map(([label, value]) => (
+                    <div key={label}>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {label}
+                      </h3>
+                      <p className="mt-1 text-foreground leading-relaxed">{value}</p>
+                    </div>
+                  ))}
+
+                  {labData.notableFaculty.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Notable Faculty
+                      </h3>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {labData.notableFaculty.map((f) => (
+                          <span key={f} className="px-2 py-0.5 text-xs rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400">
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {labData.citations.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Sources
+                      </h3>
+                      <ul className="mt-1 space-y-1">
+                        {labData.citations.slice(0, 6).map((c) => (
+                          <li key={c}>
+                            <a href={c} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline break-all">
+                              {c}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-muted-foreground/70 pt-2 border-t border-border">
+                    AI-compiled from public sources. Verify important details before applying.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
