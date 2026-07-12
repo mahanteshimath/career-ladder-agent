@@ -6,6 +6,11 @@ import { z } from "zod";
 const issueSchema = z.object({
   category: z.enum(["bug", "feature", "content", "other"]),
   description: z.string().min(20, "Description must be at least 20 characters"),
+  attachment: z
+    .string()
+    .regex(/^data:image\/(png|jpe?g|gif|webp);base64,/, "Attachment must be a PNG, JPG, GIF, or WEBP image")
+    .max(4_000_000, "Attachment too large (max ~2MB)")
+    .optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -23,6 +28,7 @@ export async function POST(request: NextRequest) {
       userId,
       category: parsed.data.category,
       description: parsed.data.description,
+      attachment: parsed.data.attachment ?? null,
     });
 
     return apiSuccess({ message: "Issue reported successfully" }, 201);

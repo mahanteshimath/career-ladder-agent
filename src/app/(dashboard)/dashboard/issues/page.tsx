@@ -6,6 +6,7 @@ interface Issue {
   ID: string;
   CATEGORY: string;
   DESCRIPTION: string;
+  ATTACHMENT?: string | null;
   STATUS: string;
   CREATED_AT: string;
 }
@@ -32,6 +33,35 @@ export default function IssuesPage() {
   const [error, setError] = useState("");
   const [category, setCategory] = useState("bug");
   const [description, setDescription] = useState("");
+  const [attachment, setAttachment] = useState<string | null>(null);
+  const [attachmentName, setAttachmentName] = useState("");
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setError("");
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)) {
+      setError("Attachment must be a PNG, JPG, GIF, or WEBP image");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Attachment too large (max 2MB)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachment(reader.result as string);
+      setAttachmentName(file.name);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeAttachment() {
+    setAttachment(null);
+    setAttachmentName("");
+  }
 
   useEffect(() => {
     loadIssues();
@@ -66,7 +96,11 @@ export default function IssuesPage() {
       const res = await fetch("/api/issues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, description }),
+        body: JSON.stringify({
+          category,
+          description,
+          ...(attachment ? { attachment } : {}),
+        }),
       });
 
       const data = await res.json();
@@ -74,6 +108,7 @@ export default function IssuesPage() {
         setSuccess(true);
         setDescription("");
         setCategory("bug");
+        removeAttachment();
         loadIssues();
       } else {
         setError(data.error?.message || "Failed to submit");
@@ -130,6 +165,48 @@ export default function IssuesPage() {
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {description.length}/20 characters minimum
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Screenshot <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            {attachment ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={attachment}
+                  alt="Attachment preview"
+                  className="h-20 w-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{attachmentName}</p>
+                  <button
+                    type="button"
+                    onClick={removeAttachment}
+                    className="text-xs text-red-600 hover:underline mt-1"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Attach a screenshot
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              PNG, JPG, GIF, or WEBP — up to 2MB.
             </p>
           </div>
         </div>
@@ -198,6 +275,21 @@ export default function IssuesPage() {
                 <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
                   {issue.DESCRIPTION}
                 </p>
+                {issue.ATTACHMENT && (
+                  <a
+                    href={issue.ATTACHMENT}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={issue.ATTACHMENT}
+                      alt="Issue attachment"
+                      className="h-16 w-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 hover:opacity-90 transition-opacity"
+                    />
+                  </a>
+                )}
               </div>
             ))}
           </div>

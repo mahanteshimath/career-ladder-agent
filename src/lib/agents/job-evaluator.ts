@@ -140,6 +140,8 @@ ${userProfile ? `Candidate Profile: Goal=${userProfile.goal}, Field=${userProfil
 ${inputType === "url" ? "Job/Program URL (research this):" : "Job/Program Description:"}
 ${inputContent.slice(0, 8000)}
 
+IMPORTANT: Base the Role/Program Summary strictly on the actual posting content${inputType === "url" ? " you retrieve from the URL" : " provided above"}. Do NOT invent the job title, company/university, location, salary, or requirements. If a detail is missing, use "Not specified".${inputType === "url" ? " If you cannot access the URL, say so explicitly in the tldr instead of guessing." : ""}
+
 Evaluate how well this candidate matches this ${isAcademic ? "academic opportunity" : "job posting"}. Be specific and actionable.`;
 
     const result = await callPerplexity(systemPrompt, userMessage, {

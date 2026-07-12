@@ -353,16 +353,17 @@ export async function submitIssue(data: {
   userId?: string;
   category: string;
   description: string;
+  attachment?: string | null;
 }) {
   await executeQuery(
-    `INSERT INTO CL_ISSUES (USER_ID, CATEGORY, DESCRIPTION) VALUES (?, ?, ?)`,
-    [data.userId || null, data.category, data.description]
+    `INSERT INTO CL_ISSUES (USER_ID, CATEGORY, DESCRIPTION, ATTACHMENT) VALUES (?, ?, ?, ?)`,
+    [data.userId || null, data.category, data.description, data.attachment || null]
   );
 }
 
 export async function getUserIssues(userId: string) {
   const result = await executeQuery(
-    `SELECT ID, CATEGORY, DESCRIPTION, STATUS, CREATED_AT 
+    `SELECT ID, CATEGORY, DESCRIPTION, ATTACHMENT, STATUS, CREATED_AT 
      FROM CL_ISSUES WHERE USER_ID = ? ORDER BY CREATED_AT DESC`,
     [userId]
   );

@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS CL_ISSUES (
   USER_ID VARCHAR(36),
   CATEGORY VARCHAR(50),      -- 'bug' | 'feature' | 'content' | 'other'
   DESCRIPTION TEXT NOT NULL,
+  ATTACHMENT TEXT,           -- optional screenshot stored as a base64 image data URL
   STATUS VARCHAR(20) DEFAULT 'open', -- 'open' | 'in_progress' | 'resolved' | 'closed'
   CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
   PRIMARY KEY (ID)

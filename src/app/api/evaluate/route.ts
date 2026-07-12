@@ -13,6 +13,62 @@ const evaluateSchema = z.object({
   targetType: z.enum(["job", "masters", "phd", "postdoc"]).optional(),
 });
 
+/**
+ * Build a concise but information-rich CV summary for the evaluator.
+ * Previously the route passed only the 2-3 sentence `summary` field (losing
+ * skills/experience context) or a raw JSON dump (which confused the model).
+ */
+function buildCvSummary(parsed: Record<string, unknown> | null | undefined): string {
+  if (!parsed || typeof parsed !== "object") return "";
+  const p = parsed as Record<string, unknown>;
+  const parts: string[] = [];
+
+  if (p.name) parts.push(`Name: ${String(p.name)}`);
+
+  const skills = p.skills;
+  if (Array.isArray(skills) && skills.length) {
+    parts.push(`Skills: ${skills.slice(0, 25).map(String).join(", ")}`);
+  }
+
+  const experience = p.experience;
+  if (Array.isArray(experience) && experience.length) {
+    const exp = experience
+      .slice(0, 4)
+      .map((e) => {
+        const ex = e as Record<string, unknown>;
+        return `${ex.title || ""} at ${ex.company || ""} (${ex.duration || ""})`.trim();
+      })
+      .join("; ");
+    parts.push(`Experience: ${exp}`);
+  }
+
+  const education = p.education;
+  if (Array.isArray(education) && education.length) {
+    const edu = education
+      .slice(0, 3)
+      .map((e) => {
+        const ed = e as Record<string, unknown>;
+        return `${ed.degree || ""} from ${ed.institution || ""} ${ed.year || ""}`.trim();
+      })
+      .join("; ");
+    parts.push(`Education: ${edu}`);
+  }
+
+  const publications = p.publications;
+  if (Array.isArray(publications) && publications.length) {
+    parts.push(`Publications: ${publications.length} listed`);
+  }
+
+  if (p.summary) parts.push(`Summary: ${String(p.summary)}`);
+
+  const keywords = p.keywords;
+  if (Array.isArray(keywords) && keywords.length) {
+    parts.push(`Keywords: ${keywords.slice(0, 25).map(String).join(", ")}`);
+  }
+
+  return parts.join("\n").slice(0, 4000);
+}
+
 export async function POST(req: NextRequest) {
   const { userId, error } = await getAuthenticatedUser();
   if (error) return error;
@@ -39,7 +95,7 @@ export async function POST(req: NextRequest) {
       const cv = await getCvById(cvId);
       if (cv?.PARSED_JSON) {
         const parsed = typeof cv.PARSED_JSON === "string" ? JSON.parse(cv.PARSED_JSON) : cv.PARSED_JSON;
-        cvSummary = parsed.summary || JSON.stringify(parsed).slice(0, 3000);
+        cvSummary = buildCvSummary(parsed) || JSON.stringify(parsed).slice(0, 3000);
       }
     } else {
       // Use most recent CV
@@ -50,7 +106,7 @@ export async function POST(req: NextRequest) {
           const p = typeof latestCv.PARSED_JSON === "string"
             ? JSON.parse(latestCv.PARSED_JSON)
             : latestCv.PARSED_JSON;
-          cvSummary = p.summary || JSON.stringify(p).slice(0, 3000);
+          cvSummary = buildCvSummary(p) || JSON.stringify(p).slice(0, 3000);
         }
       }
     }
