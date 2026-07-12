@@ -52,6 +52,7 @@ export default function PositionsPage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"browse" | "research">("browse");
 
   // Filters
@@ -140,6 +141,33 @@ export default function PositionsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ positionId, action }),
+    });
+  }
+
+  async function trackPosition(pos: Position) {
+    if (trackedIds.has(pos.ID)) return;
+    setTrackedIds((prev) => new Set(prev).add(pos.ID));
+    await fetch("/api/tracker", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        journey: "academic",
+        title: pos.TITLE,
+        organization: pos.UNIVERSITY || undefined,
+        location: pos.COUNTRY || pos.CONTINENT || undefined,
+        url: pos.SOURCE_URL || undefined,
+        deadline: pos.DEADLINE || undefined,
+        sourceType: "position",
+        sourceId: pos.ID,
+        metadata: { professor: pos.PROFESSOR, department: pos.DEPARTMENT, type: pos.TYPE },
+      }),
+    }).catch(() => {
+      // revert on failure so the user can retry
+      setTrackedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pos.ID);
+        return next;
+      });
     });
   }
 
@@ -318,6 +346,17 @@ export default function PositionsPage() {
                     }`}
                   >
                     {savedIds.has(pos.ID) ? "✓ Saved" : "Save"}
+                  </button>
+                  <button
+                    onClick={() => trackPosition(pos)}
+                    disabled={trackedIds.has(pos.ID)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      trackedIds.has(pos.ID)
+                        ? "bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 cursor-default"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-400"
+                    }`}
+                  >
+                    {trackedIds.has(pos.ID) ? "✓ Tracking" : "+ Track"}
                   </button>
                   <button
                     onClick={() => openLabInsights(pos)}

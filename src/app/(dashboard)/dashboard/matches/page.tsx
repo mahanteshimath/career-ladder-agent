@@ -11,6 +11,8 @@ import {
   Sparkles,
   MapPin,
   X,
+  Check,
+  LayoutGrid,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -46,6 +48,8 @@ export default function MatchesPage() {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [detailItem, setDetailItem] = useState<JobItem | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -116,6 +120,37 @@ export default function MatchesPage() {
   const openDetail = (id: string) => {
     const item = liveJobs.find((m) => m.id === id);
     if (item) setDetailItem(item);
+  };
+
+  const saveToTracker = async (job: JobItem) => {
+    if (savedIds.has(job.id) || savingId) return;
+    setSavingId(job.id);
+    try {
+      const res = await fetch("/api/tracker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          journey: "job",
+          title: job.title,
+          organization: job.organization || undefined,
+          location: job.location || undefined,
+          url: job.sourceUrl || undefined,
+          sourceType: "job",
+          metadata: {
+            salaryRange: job.salaryRange,
+            requiredSkills: job.requiredSkills,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSavedIds((prev) => new Set(prev).add(job.id));
+      }
+    } catch {
+      /* silently ignore — user can retry */
+    } finally {
+      setSavingId(null);
+    }
   };
 
   return (
@@ -370,6 +405,20 @@ export default function MatchesPage() {
               ) : (
                 <span className="text-xs text-muted-foreground">No application link provided.</span>
               )}
+              <button
+                onClick={() => saveToTracker(detailItem)}
+                disabled={savedIds.has(detailItem.id) || savingId === detailItem.id}
+                className="ml-auto inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-60 disabled:cursor-default"
+              >
+                {savingId === detailItem.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : savedIds.has(detailItem.id) ? (
+                  <Check size={14} className="text-emerald-500" />
+                ) : (
+                  <LayoutGrid size={14} />
+                )}
+                {savedIds.has(detailItem.id) ? "Saved to Tracker" : "Save to Tracker"}
+              </button>
             </div>
           </div>
         </div>

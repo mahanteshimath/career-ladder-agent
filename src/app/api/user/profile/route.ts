@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getUserProfile, updateUserProfile } from "@/lib/snowflake/queries";
 import { apiSuccess, badRequest, serverError, getAuthenticatedUser } from "@/lib/api-response";
+import { goalToStoredPersona } from "@/lib/persona";
 import { z } from "zod";
 
 const profileSchema = z.object({
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
       detectedAt: new Date().toISOString(),
       confirmedByUser: true,
     };
-    await updateUserProfile(userId, profile);
+    // Keep the PERSONA column in sync with the chosen goal so the dashboard
+    // nav reflects the user's journey (student vs job seeker) on next login.
+    await updateUserProfile(userId, profile, goalToStoredPersona(parsed.data.goal));
     return apiSuccess({ profile });
   } catch (err) {
     console.error("Update profile error:", err);

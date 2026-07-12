@@ -20,10 +20,12 @@ import {
   Search,
   Menu,
   X,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import type { NavPersona } from "@/lib/persona";
 
 interface NavItem {
   href: string;
@@ -36,6 +38,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: Home },
   { href: "/dashboard/upload", label: "Upload CV", icon: Upload },
   { href: "/dashboard/evaluate", label: "Evaluate", icon: Monitor },
+  { href: "/dashboard/tracker", label: "Tracker", icon: LayoutGrid },
   { href: "/dashboard/positions", label: "Academic Positions", icon: GraduationCap, personas: ["student"] },
   { href: "/dashboard/deadlines", label: "Deadlines", icon: CalendarDays, personas: ["student"] },
   { href: "/dashboard/shortlist", label: "University Shortlist", icon: Star, personas: ["student"] },
@@ -47,10 +50,11 @@ const navItems: NavItem[] = [
   { href: "/dashboard/issues", label: "Report Issue", icon: AlertTriangle },
 ];
 
-function NavContent({ persona, pathname }: { persona: "student" | "job_seeker"; pathname: string }) {
+function NavContent({ persona, pathname }: { persona: NavPersona; pathname: string }) {
   const { data: session } = useSession();
+  // "explorer" (undecided) users see every journey's items; otherwise filter by persona.
   const filteredItems = navItems.filter(
-    (item) => !item.personas || item.personas.includes(persona)
+    (item) => !item.personas || persona === "explorer" || item.personas.includes(persona)
   );
 
   return (
@@ -102,6 +106,9 @@ function NavContent({ persona, pathname }: { persona: "student" | "job_seeker"; 
         {session?.user && (
           <div className="flex items-center gap-3 px-3 py-2 mb-1">
             {session.user.image ? (
+              // Avatar URLs come from arbitrary auth providers (Google, etc.);
+              // a plain <img> avoids next/image remote-domain configuration.
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={session.user.image}
                 alt=""
@@ -133,7 +140,7 @@ function NavContent({ persona, pathname }: { persona: "student" | "job_seeker"; 
   );
 }
 
-export function DashboardNav({ persona = "job_seeker" }: { persona?: "student" | "job_seeker" }) {
+export function DashboardNav({ persona = "job_seeker" }: { persona?: NavPersona }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 

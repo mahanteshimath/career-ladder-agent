@@ -12,9 +12,9 @@ DROP TASK IF EXISTS CL_CACHE_CLEANUP;
 DROP TASK IF EXISTS CL_OTP_CLEANUP;
 DROP TABLE IF EXISTS CL_EVALUATIONS;
 DROP TABLE IF EXISTS CL_OTP_CODES;
+DROP TABLE IF EXISTS CL_TRACKER;
 DROP TABLE IF EXISTS CL_USAGE;
 DROP TABLE IF EXISTS CL_ISSUES;
-DROP TABLE IF EXISTS CL_JOB_POSTS;
 DROP TABLE IF EXISTS CL_AGENT_CACHE;
 DROP TABLE IF EXISTS CL_DRAFTS;
 DROP TABLE IF EXISTS CL_MATCHES;
@@ -195,6 +195,31 @@ CREATE TABLE IF NOT EXISTS CL_ISSUES (
   STATUS VARCHAR(20) DEFAULT 'open', -- 'open' | 'in_progress' | 'resolved' | 'closed'
   CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
   PRIMARY KEY (ID)
+);
+
+-- ============================================================
+-- TABLE: CL_TRACKER (Journey-aware application / program tracker)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS CL_TRACKER (
+  ID VARCHAR(36) DEFAULT UUID_STRING() NOT NULL,
+  USER_ID VARCHAR(36) NOT NULL,
+  JOURNEY VARCHAR(20) NOT NULL,      -- 'job' | 'academic'
+  STAGE VARCHAR(30) NOT NULL DEFAULT 'saved', -- see config/tracker.ts
+  TITLE VARCHAR(512) NOT NULL,       -- job title / position title
+  ORGANIZATION VARCHAR(512),         -- company / university
+  LOCATION VARCHAR(256),
+  URL VARCHAR(2048),                 -- apply / source url
+  DEADLINE DATE,                     -- academic deadline (optional)
+  SOURCE_TYPE VARCHAR(20),           -- 'job' | 'position' | 'manual'
+  SOURCE_ID VARCHAR(36),             -- optional ref to CL_JOBS / CL_POSITIONS
+  DEDUP_HASH VARCHAR(64),            -- hash(user + title + org + location) to prevent dupes
+  NOTES TEXT,
+  METADATA VARIANT,                  -- snapshot: salary, score, professor, skills, etc.
+  CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+  UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+  PRIMARY KEY (ID),
+  UNIQUE (DEDUP_HASH),
+  FOREIGN KEY (USER_ID) REFERENCES CL_USERS(ID)
 );
 
 -- ============================================================

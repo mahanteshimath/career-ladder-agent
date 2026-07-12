@@ -124,6 +124,105 @@ export async function getUserSavedPositions(userId: string) {
 }
 
 // ============================================================
+// TRACKER QUERIES (journey-aware application / program board)
+// ============================================================
+
+export interface TrackerItemInput {
+  userId: string;
+  journey: "job" | "academic";
+  stage?: string;
+  title: string;
+  organization?: string;
+  location?: string;
+  url?: string;
+  deadline?: string;
+  sourceType?: "job" | "position" | "manual";
+  sourceId?: string;
+  dedupHash: string;
+  notes?: string;
+  metadata?: object;
+}
+
+/**
+ * Insert a tracker item, skipping silently if the same (user + item) already
+ * exists — dedup is enforced by DEDUP_HASH. Returns true if a row was added.
+ */
+export async function addTrackerItem(data: TrackerItemInput): Promise<boolean> {
+  const result = await executeQuery(
+    `INSERT INTO CL_TRACKER
+       (USER_ID, JOURNEY, STAGE, TITLE, ORGANIZATION, LOCATION, URL, DEADLINE, SOURCE_TYPE, SOURCE_ID, DEDUP_HASH, NOTES, METADATA)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, PARSE_JSON(?)
+     WHERE NOT EXISTS (SELECT 1 FROM CL_TRACKER WHERE DEDUP_HASH = ?)`,
+    [
+      data.userId,
+      data.journey,
+      data.stage || "saved",
+      data.title,
+      data.organization || null,
+      data.location || null,
+      data.url || null,
+      data.deadline || null,
+      data.sourceType || "manual",
+      data.sourceId || null,
+      data.dedupHash,
+      data.notes || null,
+      JSON.stringify(data.metadata || {}),
+      data.dedupHash,
+    ]
+  );
+  // Snowflake DML returns a summary row like { 'number of rows inserted': N }.
+  const row = result.rows[0] as Record<string, unknown> | undefined;
+  if (!row) return true;
+  const inserted = Object.values(row)[0];
+  return typeof inserted === "number" ? inserted > 0 : true;
+}
+
+export async function getTrackerItems(userId: string, journey?: "job" | "academic") {
+  const conditions = journey ? "USER_ID = ? AND JOURNEY = ?" : "USER_ID = ?";
+  const binds = journey ? [userId, journey] : [userId];
+  const result = await executeQuery(
+    `SELECT ID, JOURNEY, STAGE, TITLE, ORGANIZATION, LOCATION, URL, DEADLINE,
+            SOURCE_TYPE, SOURCE_ID, NOTES, METADATA, CREATED_AT, UPDATED_AT
+     FROM CL_TRACKER
+     WHERE ${conditions}
+     ORDER BY UPDATED_AT DESC`,
+    binds
+  );
+  return result.rows;
+}
+
+export async function updateTrackerItem(
+  userId: string,
+  itemId: string,
+  fields: { stage?: string; notes?: string }
+) {
+  const sets: string[] = [];
+  const binds: (string | null)[] = [];
+  if (fields.stage !== undefined) {
+    sets.push("STAGE = ?");
+    binds.push(fields.stage);
+  }
+  if (fields.notes !== undefined) {
+    sets.push("NOTES = ?");
+    binds.push(fields.notes);
+  }
+  if (sets.length === 0) return;
+  sets.push("UPDATED_AT = CURRENT_TIMESTAMP()");
+  binds.push(itemId, userId);
+  await executeQuery(
+    `UPDATE CL_TRACKER SET ${sets.join(", ")} WHERE ID = ? AND USER_ID = ?`,
+    binds
+  );
+}
+
+export async function deleteTrackerItem(userId: string, itemId: string) {
+  await executeQuery(
+    `DELETE FROM CL_TRACKER WHERE ID = ? AND USER_ID = ?`,
+    [itemId, userId]
+  );
+}
+
+// ============================================================
 // CV QUERIES
 // ============================================================
 
@@ -428,8 +527,18 @@ export async function keywordSearch(
 
 export async function updateUserProfile(
   userId: string,
-  profile: object
+  profile: object,
+  persona?: "student" | "job_seeker" | "unset"
 ) {
+  if (persona) {
+    await executeQuery(
+      `UPDATE CL_USERS 
+       SET PROFILE_JSON = PARSE_JSON(?), PERSONA = ?, ONBOARDING_COMPLETE = TRUE, UPDATED_AT = CURRENT_TIMESTAMP()
+       WHERE ID = ?`,
+      [JSON.stringify(profile), persona, userId]
+    );
+    return;
+  }
   await executeQuery(
     `UPDATE CL_USERS 
      SET PROFILE_JSON = PARSE_JSON(?), ONBOARDING_COMPLETE = TRUE, UPDATED_AT = CURRENT_TIMESTAMP()

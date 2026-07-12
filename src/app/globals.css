@@ -99,6 +99,21 @@ body {
   border-radius: 0.5rem;
 }
 
+/* Shared text input styling */
+.input-base {
+  width: 100%;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  outline: none;
+}
+.input-base:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
 /* Fade in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
