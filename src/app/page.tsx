@@ -247,9 +247,9 @@ export default function HomePage() {
               <span className="font-semibold text-gray-900 dark:text-gray-100">Career Ladder</span>
             </div>
             <div className="flex gap-6 text-sm text-gray-500 dark:text-gray-400">
-              <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Privacy</Link>
-              <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Terms</Link>
-              <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Support</Link>
+              <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Terms</Link>
+              <Link href="/support" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Support</Link>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               &copy; {new Date().getFullYear()} Career Ladder. All rights reserved.

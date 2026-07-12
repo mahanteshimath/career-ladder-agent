@@ -1,7 +1,144 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { PRICING_TIERS, UPCOMING_TIERS } from "@/config/tiers";
 
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+  name: string;
+  description: string;
+  prefill?: { name?: string; email?: string };
+  theme?: { color?: string };
+  handler: (response: RazorpayResponse) => void;
+  modal?: { ondismiss?: () => void };
+}
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => { open: () => void };
+  }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function PricingCards() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [busyTier, setBusyTier] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: "info" | "error" | "success"; text: string } | null>(null);
+
+  function goFree() {
+    router.push("/login?callbackUrl=%2Fdashboard%2Fupload");
+  }
+
+  async function handleSubscribe(tier: string) {
+    setMessage(null);
+    if (status !== "authenticated") {
+      router.push("/login?callbackUrl=%2F%23pricing");
+      return;
+    }
+
+    setBusyTier(tier);
+    try {
+      const orderRes = await fetch("/api/subscribe/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok || !orderData.success) {
+        const msg = orderData?.error?.message || orderData?.error || "Could not start checkout.";
+        setMessage({ type: orderRes.status === 503 ? "info" : "error", text: msg });
+        setBusyTier(null);
+        return;
+      }
+
+      const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        setMessage({ type: "error", text: "Could not load the payment gateway. Check your connection." });
+        setBusyTier(null);
+        return;
+      }
+
+      const { orderId, amount, currency, keyId } = orderData.data;
+      const rzp = new window.Razorpay({
+        key: keyId,
+        amount,
+        currency,
+        order_id: orderId,
+        name: "Career Ladder",
+        description: `${tier} subscription`,
+        prefill: {
+          name: session?.user?.name || undefined,
+          email: session?.user?.email || undefined,
+        },
+        theme: { color: "#2563eb" },
+        modal: { ondismiss: () => setBusyTier(null) },
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch("/api/subscribe/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ...response, tier }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.success) {
+              setMessage({ type: "success", text: "Subscription active! Redirecting..." });
+              setTimeout(() => router.push("/dashboard"), 1200);
+            } else {
+              setMessage({ type: "error", text: verifyData?.error?.message || "Payment verification failed. Contact support." });
+            }
+          } catch {
+            setMessage({ type: "error", text: "Payment verification failed. Contact support." });
+          } finally {
+            setBusyTier(null);
+          }
+        },
+      });
+      rzp.open();
+    } catch {
+      setMessage({ type: "error", text: "Something went wrong starting checkout." });
+      setBusyTier(null);
+    }
+  }
+
   return (
+    <>
+      {message && (
+        <div
+          className={`max-w-3xl mx-auto mb-6 rounded-lg px-4 py-3 text-sm border ${
+            message.type === "success"
+              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+              : message.type === "error"
+                ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
+                : "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300"
+          }`}
+          role="status"
+        >
+          {message.text}
+        </div>
+      )}
+
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
       {PRICING_TIERS.map((tier) => (
         <div
@@ -52,8 +189,10 @@ export function PricingCards() {
             ))}
           </ul>
           <button
+            onClick={() => (tier.name === "free" ? goFree() : handleSubscribe(tier.name))}
+            disabled={busyTier === tier.name}
             className={`
-              mt-8 w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all
+              mt-8 w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed
               ${tier.name === "premium"
                 ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
                 : tier.name === "basic"
@@ -62,7 +201,11 @@ export function PricingCards() {
               }
             `}
           >
-            {tier.name === "free" ? "Get Started Free" : "Subscribe Now"}
+            {busyTier === tier.name
+              ? "Processing..."
+              : tier.name === "free"
+                ? "Get Started Free"
+                : "Subscribe Now"}
           </button>
         </div>
       ))}
@@ -115,6 +258,7 @@ export function PricingCards() {
           </button>
         </div>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
