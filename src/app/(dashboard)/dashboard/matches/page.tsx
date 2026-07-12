@@ -20,6 +20,7 @@ interface MatchItem {
   organization: string;
   score: number;
   matchMethod: "keyword" | "semantic" | "hybrid";
+  targetType?: "job" | "position";
   location?: string;
   description?: string;
 }
@@ -76,7 +77,6 @@ export default function MatchesPage() {
     if (!selectedCvId) return;
     setGenerating(true);
     setError(null);
-
     try {
       const res = await fetch("/api/matches", {
         method: "POST",
@@ -153,7 +153,13 @@ export default function MatchesPage() {
       )}
 
       {/* State: CVs exist — show generate controls + matches */}
-      {!loading && cvs.length > 0 && (
+      {!loading && cvs.length > 0 && (() => {
+        // Only show matches for the currently selected type so academic
+        // positions and industry jobs are never mixed together.
+        const visibleMatches = matches.filter(
+          (m) => !m.targetType || m.targetType === targetType
+        );
+        return (
         <>
           {/* Generate matches panel */}
           <div className="mt-6 bg-card border border-border rounded-xl p-5">
@@ -225,11 +231,13 @@ export default function MatchesPage() {
           </div>
 
           {/* Match results */}
-          {matches.length > 0 ? (
+          {visibleMatches.length > 0 ? (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">
-                  {matches.length} Match{matches.length !== 1 ? "es" : ""} Found
+                  {visibleMatches.length}{" "}
+                  {targetType === "job" ? "Industry" : "Academic"} Match
+                  {visibleMatches.length !== 1 ? "es" : ""} Found
                 </h3>
                 <button
                   onClick={handleGenerate}
@@ -241,7 +249,7 @@ export default function MatchesPage() {
                 </button>
               </div>
               <div className="grid gap-4">
-                {matches.map((match) => (
+                {visibleMatches.map((match) => (
                   <JobCard
                     key={match.id}
                     match={match}
@@ -269,7 +277,8 @@ export default function MatchesPage() {
             )
           )}
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }

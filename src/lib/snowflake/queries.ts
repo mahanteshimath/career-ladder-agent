@@ -378,54 +378,46 @@ export async function keywordSearch(
   keywords: string[],
   limit: number = 20
 ) {
-  // Guard: empty keywords — return recent entries as fallback
+  // No keywords → no keyword matches. Previously this returned the newest
+  // rows as a fallback, which surfaced irrelevant results (e.g. AI/ML jobs
+  // for a bioinformatics CV). Returning empty lets semantic search / the
+  // empty-state UI handle it honestly.
   if (!keywords || keywords.length === 0) {
-    const fallback = await executeQuery(
-      `SELECT * FROM ${table} ORDER BY CREATED_AT DESC LIMIT ?`,
-      [limit]
-    );
-    return fallback.rows;
+    return [];
   }
 
-  // Build conditions: exact ARRAY_CONTAINS + fuzzy ILIKE on TITLE/DESCRIPTION
-  const conditions: string[] = [];
+  // Build a relevance score instead of ordering by recency:
+  //   exact keyword-array membership = 3, title match = 2, description = 1.
+  // Rows are ranked by total relevance so the best-matching entries surface
+  // first, and rows with zero overlap are excluded entirely.
+  const scoreParts: string[] = [];
   const binds: (string | number)[] = [];
 
   for (const kw of keywords) {
-    // Exact match in KEYWORDS array
-    conditions.push(`ARRAY_CONTAINS(?::VARIANT, KEYWORDS)`);
+    scoreParts.push(`(CASE WHEN ARRAY_CONTAINS(?::VARIANT, src.KEYWORDS) THEN 3 ELSE 0 END)`);
     binds.push(kw);
   }
   for (const kw of keywords) {
-    // Fuzzy match on TITLE
-    conditions.push(`TITLE ILIKE ?`);
+    scoreParts.push(`(CASE WHEN src.TITLE ILIKE ? THEN 2 ELSE 0 END)`);
     binds.push(`%${kw}%`);
   }
   for (const kw of keywords) {
-    // Fuzzy match on DESCRIPTION
-    conditions.push(`DESCRIPTION ILIKE ?`);
+    scoreParts.push(`(CASE WHEN src.DESCRIPTION ILIKE ? THEN 1 ELSE 0 END)`);
     binds.push(`%${kw}%`);
   }
 
   const sql = `
-    SELECT * FROM ${table}
-    WHERE ${conditions.join(" OR ")}
-    ORDER BY CREATED_AT DESC
+    SELECT * FROM (
+      SELECT src.*, (${scoreParts.join(" + ")}) AS MATCH_SCORE
+      FROM ${table} src
+    )
+    WHERE MATCH_SCORE > 0
+    ORDER BY MATCH_SCORE DESC, CREATED_AT DESC
     LIMIT ?
   `;
   binds.push(limit);
 
   const result = await executeQuery(sql, binds);
-
-  // If still no results, return recent entries as fallback
-  if (result.rows.length === 0) {
-    const fallback = await executeQuery(
-      `SELECT * FROM ${table} ORDER BY CREATED_AT DESC LIMIT ?`,
-      [limit]
-    );
-    return fallback.rows;
-  }
-
   return result.rows;
 }
 

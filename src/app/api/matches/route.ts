@@ -21,6 +21,7 @@ export async function GET() {
       organization: row.TARGET_ORG || "Unknown",
       score: row.SCORE || 0,
       matchMethod: row.MATCH_METHOD || "keyword",
+      targetType: row.TARGET_TYPE || undefined,
       location: row.LOCATION || undefined,
       description: row.DESCRIPTION || undefined,
     }));

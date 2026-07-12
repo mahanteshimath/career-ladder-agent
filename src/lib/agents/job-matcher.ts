@@ -76,9 +76,17 @@ function mergeResults(
 ): MatchResult[] {
   const merged = new Map<string, MatchResult>();
 
-  // Add keyword results with a base score
+  // Normalize keyword relevance scores (from keywordSearch's MATCH_SCORE)
+  // into a 0.35–0.75 confidence band, leaving room for a semantic boost.
+  const maxKw = Math.max(
+    1,
+    ...keywordRows.map((r) => Number(r.MATCH_SCORE) || 0)
+  );
+
+  // Add keyword results ranked by relevance
   for (const row of keywordRows) {
     const id = row.ID as string;
+    const relevance = (Number(row.MATCH_SCORE) || 0) / maxKw; // 0..1
     merged.set(id, {
       id,
       title: row.TITLE as string,
@@ -86,7 +94,7 @@ function mergeResults(
         type === "job"
           ? (row.COMPANY as string) || ""
           : (row.UNIVERSITY as string) || "",
-      score: 0.6, // Base score for keyword match
+      score: Number((0.35 + relevance * 0.4).toFixed(3)),
       matchMethod: "keyword",
       keywords: row.KEYWORDS as string[],
       description: (row.DESCRIPTION as string)?.slice(0, 200),
