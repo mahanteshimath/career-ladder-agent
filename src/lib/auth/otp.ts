@@ -42,7 +42,7 @@ export async function generateOtp(email: string): Promise<{ success: boolean; me
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <div style="display: inline-block; width: 40px; height: 40px; background: #2563eb; border-radius: 10px; line-height: 40px; color: white; font-weight: bold; font-size: 16px;">CL</div>
+          <div style="display: inline-block; width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 10px; line-height: 40px; color: white; font-weight: bold; font-size: 16px;">CL</div>
         </div>
         <h2 style="color: #1e293b; text-align: center; margin-bottom: 8px;">Your sign-in code</h2>
         <p style="color: #64748b; text-align: center; font-size: 14px; margin-bottom: 24px;">

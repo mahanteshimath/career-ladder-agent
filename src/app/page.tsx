@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PricingCards } from "@/components/PricingCards";
+import { Logo } from "@/components/Logo";
 
 const heroPattern =
   "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.22) 1px, transparent 0)";
@@ -20,8 +21,9 @@ export default function HomePage() {
             </span>
           </h2>
           <p className="mt-6 text-lg md:text-xl text-blue-100/90 max-w-2xl mx-auto leading-relaxed">
-            Upload your CV and instantly receive job matches, personalized SOPs,
-            cover letters, and skill gap analysis — all powered by enterprise AI.
+            One AI copilot for both paths — land your next <strong className="font-semibold text-white">job</strong> or
+            your <strong className="font-semibold text-white">PhD/Masters</strong>. Upload your CV to get matched roles
+            and positions, a fit score, and tailored SOPs, cover letters, and recommendation letters.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -45,15 +47,15 @@ export default function HomePage() {
           <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-blue-200/80">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-              Enterprise Security
+              Jobs &amp; PhD/Masters
             </div>
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-              Cortex AI Engine
+              Tailored SOPs &amp; letters
             </div>
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
-              Results in Seconds
+              Results in seconds
             </div>
           </div>
         </div>
@@ -123,6 +125,67 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Everything you need */}
+      <section className="bg-gray-50 dark:bg-gray-900/40 border-y border-gray-200 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-6 py-20">
+          <div className="text-center mb-14">
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              Everything you need — for jobs and higher study
+            </h3>
+            <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Whether you&apos;re chasing a role or a research position, Career Ladder covers the whole journey.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                title: "Smart Fit Score",
+                desc: "See how well your CV matches each job or academic position, with the exact keywords you're missing.",
+                tone: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40",
+              },
+              {
+                title: "SOPs, Cover & Recommendation Letters",
+                desc: "Generate tailored documents with a built-in quality self-audit that flags generic phrasing.",
+                tone: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40",
+              },
+              {
+                title: "Scholarship Finder",
+                desc: "Discover real, current funding and scholarships matched to your profile via live AI research.",
+                tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40",
+              },
+              {
+                title: "Professor Outreach",
+                desc: "Draft personalized emails to supervisors that reference their research — and track your pipeline.",
+                tone: "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40",
+              },
+              {
+                title: "Interview Prep",
+                desc: "Practice tailored questions with suggested talking points grounded in your own CV.",
+                tone: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40",
+              },
+              {
+                title: "ATS-safe CV Builder",
+                desc: "Build an enhanced CV and export a clean, single-column version any recruiter system can read.",
+                tone: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40",
+              },
+            ].map((f) => (
+              <div
+                key={f.title}
+                className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${f.tone}`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">{f.title}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Stats bar */}
       <section className="border-y border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
         <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -180,9 +243,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 py-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-xs font-bold text-white">CL</span>
-              </div>
+              <Logo size={28} />
               <span className="font-semibold text-gray-900 dark:text-gray-100">Career Ladder</span>
             </div>
             <div className="flex gap-6 text-sm text-gray-500 dark:text-gray-400">
