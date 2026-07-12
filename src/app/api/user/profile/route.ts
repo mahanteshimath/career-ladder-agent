@@ -19,9 +19,9 @@ export async function GET() {
   try {
     const row = await getUserProfile(userId);
     if (!row || !row.PROFILE_JSON) {
-      return apiSuccess({ data: null });
+      return apiSuccess(null);
     }
-    return apiSuccess({ data: row.PROFILE_JSON });
+    return apiSuccess(row.PROFILE_JSON);
   } catch (err) {
     console.error("Get profile error:", err);
     return serverError();

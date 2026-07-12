@@ -78,13 +78,14 @@ export function JobCard({ match, userTier, onViewDetails, onGenerateSop }: JobCa
         >
           View Details
         </button>
-        {/* Tier check disabled for testing */}
-        <button
-          onClick={() => onGenerateSop?.(match.id)}
-          className="text-sm px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary-hover transition-colors"
-        >
-          Generate SOP
-        </button>
+        {onGenerateSop && (
+          <button
+            onClick={() => onGenerateSop(match.id)}
+            className="text-sm px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary-hover transition-colors"
+          >
+            Generate SOP
+          </button>
+        )}
         {match.sourceUrl && (
           <a
             href={match.sourceUrl}
