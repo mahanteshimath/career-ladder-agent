@@ -12,10 +12,6 @@ export default function HomePage() {
         <div className="absolute inset-0 opacity-40" style={{ backgroundImage: heroPattern, backgroundSize: "60px 60px" }} />
 
         <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium mb-6 border border-white/20">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            Powered by Snowflake Cortex AI
-          </div>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] tracking-tight">
             Your AI Career
             <br />

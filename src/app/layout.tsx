@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: "%s | Career Ladder",
   },
   description:
-    "AI-powered career services: CV matching, SOP generation, skill gap analysis, and academic position discovery. Powered by Snowflake Cortex.",
+    "AI-powered career services: CV matching, SOP generation, skill gap analysis, and academic position discovery.",
   keywords: [
     "AI career services",
     "job matching",
