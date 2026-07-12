@@ -39,7 +39,7 @@ export const TIER_LIMITS: Record<TierName, TierConfig> = {
   basic: {
     name: "basic",
     displayName: "Basic (Level 2)",
-    price: "₹50–100",
+    price: "₹75",
     priceSubtext: "per week",
     features: [
       "Upload up to 2 CVs",
@@ -69,7 +69,6 @@ export const TIER_LIMITS: Record<TierName, TierConfig> = {
       "Saved progress & history",
       "Skill gap analysis",
       "Priority AI processing",
-      "Email support",
     ],
     limits: {
       search: { maxCount: 100, periodDays: 30 },
@@ -86,3 +85,32 @@ export const TIER_LIMITS: Record<TierName, TierConfig> = {
 };
 
 export const PRICING_TIERS = Object.values(TIER_LIMITS);
+
+/**
+ * Display-only upcoming tier shown on the pricing page as "Coming Soon".
+ * Not wired into TIER_LIMITS / rate limiting / auth yet.
+ */
+export interface DisplayTier {
+  name: string;
+  displayName: string;
+  price: string;
+  priceSubtext: string;
+  features: string[];
+  comingSoon?: boolean;
+}
+
+export const UPCOMING_TIERS: DisplayTier[] = [
+  {
+    name: "mentor",
+    displayName: "Pro + Mentor (Level 4)",
+    price: "₹899",
+    priceSubtext: "per month",
+    features: [
+      "Everything in Premium",
+      "2 personal mentor sessions (30 min each)",
+      "Access to 1 live webinar",
+      "Human guidance on your applications",
+    ],
+    comingSoon: true,
+  },
+];

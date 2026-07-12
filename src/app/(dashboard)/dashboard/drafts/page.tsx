@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, Sparkles, ArrowRight } from "lucide-react";
+import { FileText, Sparkles, ArrowRight, X, Copy, Download } from "lucide-react";
 import Link from "next/link";
 
 interface DraftItem {
@@ -14,6 +14,17 @@ interface DraftItem {
 export default function DraftsPage() {
   const [drafts, setDrafts] = useState<DraftItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<DraftItem | null>(null);
+
+  function downloadDraft(draft: DraftItem) {
+    const blob = new Blob([draft.content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${draft.type}_${draft.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   useEffect(() => {
     async function loadDrafts() {
@@ -85,11 +96,58 @@ export default function DraftsPage() {
               <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
                 {draft.content}
               </p>
-              <button className="mt-2 text-sm text-primary hover:underline">
+              <button
+                onClick={() => setSelected(draft)}
+                className="mt-2 text-sm text-primary hover:underline"
+              >
                 View Full Document
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-sm font-semibold capitalize text-foreground">
+                {selected.type.replace("_", " ")}
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigator.clipboard.writeText(selected.content)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <Copy size={14} /> Copy
+                </button>
+                <button
+                  onClick={() => downloadDraft(selected)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <Download size={14} /> Download
+                </button>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <pre className="whitespace-pre-wrap font-sans text-sm text-foreground leading-relaxed">
+                {selected.content}
+              </pre>
+            </div>
+          </div>
         </div>
       )}
     </div>

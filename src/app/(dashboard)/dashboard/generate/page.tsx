@@ -17,6 +17,7 @@ interface SopAnswers {
   whyThisProgram: string;
   researchInterests: string;
   longTermGoals: string;
+  additionalDetails: string;
 }
 
 interface CoverLetterAnswers {
@@ -38,6 +39,7 @@ export default function GeneratePage() {
     whyThisProgram: "",
     researchInterests: "",
     longTermGoals: "",
+    additionalDetails: "",
   });
   const [coverLetterAnswers, setCoverLetterAnswers] = useState<CoverLetterAnswers>({
     jobTitle: "",
@@ -73,7 +75,12 @@ export default function GeneratePage() {
         `Why this program: ${sopAnswers.whyThisProgram}`,
         `Research Interests: ${sopAnswers.researchInterests}`,
         `Long-term Goals: ${sopAnswers.longTermGoals}`,
-      ].join("\n\n");
+        sopAnswers.additionalDetails
+          ? `Additional Details: ${sopAnswers.additionalDetails}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
     } else {
       return [
         `Job Title: ${coverLetterAnswers.jobTitle}`,
@@ -291,6 +298,12 @@ export default function GeneratePage() {
                 placeholder="Where do you see yourself in 5-10 years? How does this program help?"
                 value={sopAnswers.longTermGoals}
                 onChange={(v) => setSopAnswers({ ...sopAnswers, longTermGoals: v })}
+              />
+              <TextArea
+                label="Additional Details (optional)"
+                placeholder="Anything relevant we didn't ask: specific professors to mention, publications, personal circumstances, tone preference..."
+                value={sopAnswers.additionalDetails}
+                onChange={(v) => setSopAnswers({ ...sopAnswers, additionalDetails: v })}
               />
             </div>
           ) : (

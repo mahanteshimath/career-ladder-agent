@@ -164,7 +164,7 @@ export default function HomePage() {
             Ready to land your dream role?
           </h3>
           <p className="mt-3 text-blue-100/90 max-w-lg mx-auto">
-            Join thousands of professionals using AI to fast-track their career.
+            Join thousands of professionals using AI to fast-track your career.
           </p>
           <Link
             href="/login"

@@ -29,13 +29,6 @@ export const CV_TEMPLATES: CvTemplate[] = [
     color: "#7c3aed",
   },
   {
-    id: "creative-bold",
-    name: "Creative Bold",
-    description: "Color accents with a sidebar for skills. Ideal for design, marketing, and media roles.",
-    category: "creative",
-    color: "#e11d48",
-  },
-  {
     id: "ats-optimized",
     name: "ATS-Optimized",
     description: "Plain, scannable format designed to pass Applicant Tracking Systems without issues.",
