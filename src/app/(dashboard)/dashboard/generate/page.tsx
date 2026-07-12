@@ -11,6 +11,14 @@ interface CvOption {
 type StepId = "select-cv" | "select-type" | "questionnaire" | "generating" | "result";
 type DocType = "sop" | "cover_letter";
 
+interface DocumentAudit {
+  specificityScore: number;
+  bannedPhrases: string[];
+  placeholders: string[];
+  withinTargetLength: boolean;
+  suggestions: string[];
+}
+
 interface SopAnswers {
   targetProgram: string;
   university: string;
@@ -49,6 +57,7 @@ export default function GeneratePage() {
     additionalNotes: "",
   });
   const [result, setResult] = useState("");
+  const [audit, setAudit] = useState<DocumentAudit | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -110,6 +119,7 @@ export default function GeneratePage() {
       const data = await res.json();
       if (data.success) {
         setResult(data.data.content);
+        setAudit(data.data.audit ?? null);
         setStep("result");
       } else {
         setError(data.error || "Generation failed");
@@ -407,6 +417,8 @@ export default function GeneratePage() {
             </div>
           </div>
 
+          {audit && <QualityPanel audit={audit} />}
+
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
             <p className="text-xs text-amber-700 dark:text-amber-400">
               ⚠️ Please review and verify all information before submitting. AI may occasionally add inaccurate details.
@@ -415,7 +427,7 @@ export default function GeneratePage() {
 
           <div className="mt-4 flex items-center gap-3">
             <button
-              onClick={() => { setStep("questionnaire"); setResult(""); }}
+              onClick={() => { setStep("questionnaire"); setResult(""); setAudit(null); }}
               className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors"
             >
               Regenerate
@@ -428,6 +440,53 @@ export default function GeneratePage() {
             </a>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── QUALITY AUDIT PANEL ────────────────────────────────────────
+
+function QualityPanel({ audit }: { audit: DocumentAudit }) {
+  const { specificityScore, bannedPhrases, placeholders, withinTargetLength, suggestions } = audit;
+  const tone =
+    specificityScore >= 80
+      ? { ring: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30", border: "border-emerald-200 dark:border-emerald-800", label: "Strong" }
+      : specificityScore >= 60
+        ? { ring: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800", label: "Needs polish" }
+        : { ring: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/30", border: "border-rose-200 dark:border-rose-800", label: "Weak" };
+
+  return (
+    <div className={`mt-4 p-4 rounded-lg border ${tone.bg} ${tone.border}`}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quality Self-Audit</h3>
+        <div className="flex items-center gap-2">
+          <span className={`text-lg font-bold ${tone.ring}`}>{specificityScore}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">/100 · {tone.label}</span>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        <span className={`px-2 py-1 rounded-md border ${bannedPhrases.length === 0 ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-rose-300 text-rose-700 dark:text-rose-400"}`}>
+          {bannedPhrases.length === 0 ? "✓ No generic phrases" : `${bannedPhrases.length} generic phrase${bannedPhrases.length > 1 ? "s" : ""}`}
+        </span>
+        <span className={`px-2 py-1 rounded-md border ${placeholders.length === 0 ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-rose-300 text-rose-700 dark:text-rose-400"}`}>
+          {placeholders.length === 0 ? "✓ No placeholders" : `${placeholders.length} placeholder${placeholders.length > 1 ? "s" : ""}`}
+        </span>
+        <span className={`px-2 py-1 rounded-md border ${withinTargetLength ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-amber-300 text-amber-700 dark:text-amber-400"}`}>
+          {withinTargetLength ? "✓ Ideal length" : "Length off-target"}
+        </span>
+      </div>
+
+      {suggestions.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {suggestions.map((s, i) => (
+            <li key={i} className="text-xs text-gray-700 dark:text-gray-300 flex gap-2">
+              <span className="text-gray-400">•</span>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

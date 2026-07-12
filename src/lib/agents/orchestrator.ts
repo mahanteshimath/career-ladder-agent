@@ -5,6 +5,8 @@ import { sopWriter } from "./sop-writer";
 import { skillAnalyzer } from "./skill-analyzer";
 import { searchPositions } from "./position-researcher";
 import { searchJobs } from "./job-researcher";
+import { searchScholarships } from "./scholarship-researcher";
+import { generateInterviewPrep } from "./interview-coach";
 import { evaluator } from "./job-evaluator";
 import { researchLab } from "./lab-researcher";
 import { upsertPositions, upsertJobs } from "@/lib/snowflake/upsert-research";
@@ -15,8 +17,12 @@ export type AgentTask =
   | "match_positions"
   | "research_positions"
   | "research_jobs"
+  | "research_scholarships"
   | "generate_sop"
   | "generate_cover_letter"
+  | "generate_outreach"
+  | "generate_lor"
+  | "interview_prep"
   | "analyze_skills"
   | "evaluate"
   | "research_lab";
@@ -114,6 +120,19 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
         break;
       }
 
+      case "research_scholarships": {
+        const schResult = await searchScholarships(
+          request.payload.cvSummary as string,
+          request.payload.level as string,
+          request.payload.field as string,
+          request.payload.country as string,
+          request.payload.currentDate as string
+        );
+        if ("error" in schResult) throw new Error(schResult.error);
+        result = schResult;
+        break;
+      }
+
       case "generate_sop":
         result = await sopWriter.generateSop(
           request.payload.cvSummary as string,
@@ -130,6 +149,31 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
         );
         break;
 
+      case "generate_outreach":
+        result = await sopWriter.generateOutreachEmail(
+          request.payload.cvSummary as string,
+          request.payload.positionContext as string,
+          request.payload.professorName as string | undefined,
+          request.payload.userInstructions as string | undefined
+        );
+        break;
+
+      case "generate_lor":
+        result = await sopWriter.generateLor(
+          request.payload.candidateProfile as string,
+          request.payload.recommenderContext as string,
+          request.payload.targetContext as string,
+          request.payload.userInstructions as string | undefined
+        );
+        break;
+
+      case "interview_prep":
+        result = await generateInterviewPrep(
+          request.payload.cvSummary as string,
+          request.payload.targetContext as string,
+          request.payload.journey as "job" | "academic"
+        );
+        break;
       case "analyze_skills":
         result = await skillAnalyzer.analyze(
           request.payload.cvParsed as Record<string, unknown>,

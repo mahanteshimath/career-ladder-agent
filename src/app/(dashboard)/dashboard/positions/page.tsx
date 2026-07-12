@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { ResearchTab } from "./research-tab";
+import { fitBand, type FitBand } from "@/lib/utils/fit-score";
 
 interface Position {
   ID: string;
@@ -15,6 +16,7 @@ interface Position {
   DEADLINE?: string;
   SOURCE_URL?: string;
   DESCRIPTION: string;
+  FIT_SCORE?: number;
 }
 
 interface LabInsights {
@@ -54,6 +56,7 @@ export default function PositionsPage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"browse" | "research">("browse");
+  const [sortByFit, setSortByFit] = useState(false);
 
   // Filters
   const [type, setType] = useState("");
@@ -66,6 +69,53 @@ export default function PositionsPage() {
   const [labData, setLabData] = useState<LabInsights | null>(null);
   const [labLoading, setLabLoading] = useState(false);
   const [labError, setLabError] = useState("");
+
+  // Outreach email modal
+  const [outreachPos, setOutreachPos] = useState<Position | null>(null);
+  const [outreachData, setOutreachData] = useState<{ subject: string; body: string } | null>(null);
+  const [outreachLoading, setOutreachLoading] = useState(false);
+  const [outreachError, setOutreachError] = useState("");
+  const [outreachCopied, setOutreachCopied] = useState(false);
+
+  async function openOutreach(pos: Position) {
+    setOutreachPos(pos);
+    setOutreachData(null);
+    setOutreachError("");
+    setOutreachCopied(false);
+    setOutreachLoading(true);
+    try {
+      const positionContext = [
+        `Title: ${pos.TITLE}`,
+        `University: ${pos.UNIVERSITY}${pos.DEPARTMENT ? ` — ${pos.DEPARTMENT}` : ""}`,
+        pos.COUNTRY ? `Location: ${pos.COUNTRY}` : "",
+        pos.DESCRIPTION ? `Description: ${pos.DESCRIPTION}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const res = await fetch("/api/positions/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionContext, professorName: pos.PROFESSOR || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOutreachData(data.data as { subject: string; body: string });
+      } else {
+        setOutreachError(data.error || "Could not draft the outreach email.");
+      }
+    } catch {
+      setOutreachError("Network error while drafting the email.");
+    } finally {
+      setOutreachLoading(false);
+    }
+  }
+
+  function copyOutreach() {
+    if (!outreachData) return;
+    navigator.clipboard.writeText(`Subject: ${outreachData.subject}\n\n${outreachData.body}`);
+    setOutreachCopied(true);
+    setTimeout(() => setOutreachCopied(false), 2000);
+  }
 
   async function openLabInsights(pos: Position) {
     setLabPos(pos);
@@ -306,78 +356,118 @@ export default function PositionsPage() {
         </div>
       ) : (
         <div className="mt-6 space-y-3">
-          {positions.map((pos) => (
-            <div
-              key={pos.ID}
-              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 hover:shadow-sm transition-shadow"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{pos.TITLE}</h3>
-                    <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 uppercase">
-                      {pos.TYPE?.replace("_", " ") || "Position"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {pos.UNIVERSITY}{pos.DEPARTMENT ? ` — ${pos.DEPARTMENT}` : ""}
-                  </p>
-                  {pos.PROFESSOR && (
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">Prof. {pos.PROFESSOR}</p>
-                  )}
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    📍 {pos.COUNTRY || pos.CONTINENT}
-                  </p>
-                  {pos.DESCRIPTION && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{pos.DESCRIPTION}</p>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <span className={`text-xs ${getDeadlineColor(pos.DEADLINE)}`}>
-                    {formatDeadline(pos.DEADLINE)}
-                  </span>
-                  <button
-                    onClick={() => toggleSave(pos.ID)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      savedIds.has(pos.ID)
-                        ? "bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-400"
-                    }`}
-                  >
-                    {savedIds.has(pos.ID) ? "✓ Saved" : "Save"}
-                  </button>
-                  <button
-                    onClick={() => trackPosition(pos)}
-                    disabled={trackedIds.has(pos.ID)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      trackedIds.has(pos.ID)
-                        ? "bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 cursor-default"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-400"
-                    }`}
-                  >
-                    {trackedIds.has(pos.ID) ? "✓ Tracking" : "+ Track"}
-                  </button>
-                  <button
-                    onClick={() => openLabInsights(pos)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
-                  >
-                    ✨ Lab Insights
-                  </button>
-                  {pos.SOURCE_URL && (
-                    <a
-                      href={pos.SOURCE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline"
+          {(() => {
+            const hasFit = positions.some(
+              (p) => typeof p.FIT_SCORE === "number" && p.FIT_SCORE > 0
+            );
+            const displayed = sortByFit && hasFit
+              ? [...positions].sort((a, b) => (b.FIT_SCORE ?? 0) - (a.FIT_SCORE ?? 0))
+              : positions;
+            return (
+              <>
+                {hasFit && (
+                  <div className="flex items-center justify-end -mt-2 mb-1">
+                    <button
+                      onClick={() => setSortByFit((v) => !v)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                        sortByFit
+                          ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300"
+                          : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
                     >
-                      Apply →
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                      {sortByFit ? "✓ Grouped by fit" : "Group by fit (Reach / Match / Safe)"}
+                    </button>
+                  </div>
+                )}
+                {displayed.map((pos, i) => {
+                  const showHeader =
+                    sortByFit &&
+                    hasFit &&
+                    (i === 0 ||
+                      fitBand(displayed[i - 1].FIT_SCORE ?? 0) !== fitBand(pos.FIT_SCORE ?? 0));
+                  return (
+                    <div key={pos.ID}>
+                      {showHeader && <BandHeader band={fitBand(pos.FIT_SCORE ?? 0)} />}
+                      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{pos.TITLE}</h3>
+                              <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 uppercase">
+                                {pos.TYPE?.replace("_", " ") || "Position"}
+                              </span>
+                              <FitBadge score={pos.FIT_SCORE} />
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {pos.UNIVERSITY}{pos.DEPARTMENT ? ` — ${pos.DEPARTMENT}` : ""}
+                            </p>
+                            {pos.PROFESSOR && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">Prof. {pos.PROFESSOR}</p>
+                            )}
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              📍 {pos.COUNTRY || pos.CONTINENT}
+                            </p>
+                            {pos.DESCRIPTION && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{pos.DESCRIPTION}</p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <span className={`text-xs ${getDeadlineColor(pos.DEADLINE)}`}>
+                              {formatDeadline(pos.DEADLINE)}
+                            </span>
+                            <button
+                              onClick={() => toggleSave(pos.ID)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                savedIds.has(pos.ID)
+                                  ? "bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-400"
+                              }`}
+                            >
+                              {savedIds.has(pos.ID) ? "✓ Saved" : "Save"}
+                            </button>
+                            <button
+                              onClick={() => trackPosition(pos)}
+                              disabled={trackedIds.has(pos.ID)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                trackedIds.has(pos.ID)
+                                  ? "bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 cursor-default"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-400"
+                              }`}
+                            >
+                              {trackedIds.has(pos.ID) ? "✓ Tracking" : "+ Track"}
+                            </button>
+                            <button
+                              onClick={() => openLabInsights(pos)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                            >
+                              ✨ Lab Insights
+                            </button>
+                            <button
+                              onClick={() => openOutreach(pos)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
+                            >
+                              ✉️ Draft Email
+                            </button>
+                            {pos.SOURCE_URL && (
+                              <a
+                                href={pos.SOURCE_URL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline"
+                              >
+                                Apply →
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -484,6 +574,127 @@ export default function PositionsPage() {
           </div>
         </div>
       )}
+
+      {outreachPos && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setOutreachPos(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between p-4 border-b border-border">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-foreground truncate">
+                  Outreach Email{outreachPos.PROFESSOR ? ` — Prof. ${outreachPos.PROFESSOR}` : ""}
+                </h2>
+                <p className="text-xs text-muted-foreground truncate">
+                  {outreachPos.UNIVERSITY}{outreachPos.DEPARTMENT ? ` — ${outreachPos.DEPARTMENT}` : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => setOutreachPos(null)}
+                className="text-muted-foreground hover:text-foreground text-lg leading-none px-2"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto">
+              {outreachLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+                  <div className="animate-spin w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full" />
+                  Drafting a personalized email...
+                </div>
+              )}
+
+              {outreachError && !outreachLoading && (
+                <p className="text-sm text-red-600 dark:text-red-400 py-4">{outreachError}</p>
+              )}
+
+              {outreachData && !outreachLoading && (
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subject</span>
+                    <p className="mt-1 text-foreground font-medium">{outreachData.subject}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Body</span>
+                    <p className="mt-1 text-foreground leading-relaxed whitespace-pre-wrap">{outreachData.body}</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-border">
+                    <button
+                      onClick={copyOutreach}
+                      className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
+                    >
+                      {outreachCopied ? "✓ Copied" : "Copy email"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70 pt-2">
+                    AI-drafted. Review and personalize before sending — verify the professor&apos;s name and research.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+/**
+ * Inline CV-fit badge. Renders nothing when no score is available
+ * (e.g. the user has not uploaded a CV yet), so the list is unaffected.
+ */
+function FitBadge({ score }: { score?: number }) {
+  if (typeof score !== "number" || score <= 0) return null;
+  const tone =
+    score >= 70
+      ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+      : score >= 40
+        ? "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
+        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400";
+  return (
+    <span
+      className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${tone}`}
+      title="Estimated fit with your latest CV (keyword overlap)"
+    >
+      {score}% fit
+    </span>
+  );
+}
+
+/**
+ * Section header for the "Group by fit" view — labels each fit band as a
+ * Reach / Match / Safe grouping familiar to applicants building a balanced list.
+ */
+function BandHeader({ band }: { band: FitBand }) {
+  const meta: Record<FitBand, { label: string; hint: string; cls: string }> = {
+    strong: {
+      label: "Safe — Strong fit",
+      hint: "70%+ keyword overlap with your CV",
+      cls: "text-emerald-700 dark:text-emerald-300",
+    },
+    moderate: {
+      label: "Match — Moderate fit",
+      hint: "40–69% overlap; competitive with tailoring",
+      cls: "text-amber-700 dark:text-amber-300",
+    },
+    reach: {
+      label: "Reach — Lower fit",
+      hint: "Below 40% overlap; ambitious targets",
+      cls: "text-gray-600 dark:text-gray-400",
+    },
+  };
+  const m = meta[band];
+  return (
+    <div className="flex items-baseline gap-2 pt-3 pb-1">
+      <span className={`text-xs font-semibold uppercase tracking-wide ${m.cls}`}>{m.label}</span>
+      <span className="text-[11px] text-muted-foreground">· {m.hint}</span>
+    </div>
+  );
+}
+

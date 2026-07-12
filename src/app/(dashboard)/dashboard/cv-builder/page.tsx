@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CV_TEMPLATES, type CvTemplate, type CvExperienceEntry, type CvEducationEntry } from "@/config/cv-templates";
+import { cvToAtsText, type AtsCv } from "@/lib/utils/cv-ats-export";
 
 type Step = "template" | "form" | "building" | "preview";
 
@@ -258,6 +259,23 @@ export default function CvBuilderPage() {
               className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Print / Save as PDF
+            </button>
+            <button
+              onClick={() => {
+                const text = cvToAtsText(cv as AtsCv);
+                const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                const safeName = (cv.personalInfo.fullName || "CV").replace(/[^a-z0-9]+/gi, "_");
+                a.download = `${safeName}_ATS.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+              title="Plain-text, single-column resume that any ATS can parse"
+            >
+              Download ATS-safe (.txt)
             </button>
             <button
               onClick={() => { setStep("form"); setCvResult(null); }}
