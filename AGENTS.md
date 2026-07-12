@@ -2,7 +2,9 @@
 
 ## What is Career-Ladder-Agent
 
-Production-grade AI career services startup built on Next.js 15 + Snowflake Cortex. Provides CV-driven job matching, SOP/cover letter generation, CV building, and academic position discovery with a 3-tier subscription model.
+Production-grade AI career services platform built on Next.js 15. It serves **two personas** — job seekers and higher-study applicants — covering CV parsing, job & academic-position matching, fit scoring, document generation (SOP / cover letter / recommendation letter / professor outreach) with a quality self-audit, scholarship discovery, lab insights, interview prep, and an application tracker, behind a 3-tier Razorpay subscription model.
+
+LLM tasks (parsing, generation, live web research) run on **Perplexity** (`sonar-pro`). **Snowflake** provides persistence, vector embeddings for semantic search, and AI response caching.
 
 ## Tech Stack
 
@@ -11,9 +13,10 @@ Production-grade AI career services startup built on Next.js 15 + Snowflake Cort
 | Frontend | Next.js 15 (App Router) + Tailwind CSS + shadcn/ui |
 | Auth | NextAuth.js v5 (Auth.js) with Google + Email |
 | Backend | Next.js Route Handlers (serverless on Vercel) |
-| Database | Snowflake (Cortex enabled) |
-| AI/LLM | Snowflake Cortex (`COMPLETE`, `EMBED_TEXT_768`) |
-| Payments | Razorpay (India) / Stripe |
+| Database | Snowflake (app data, vector embeddings, AI cache) |
+| AI/LLM | Perplexity (`sonar-pro`) for parsing, generation & live research |
+| Embeddings / Search | Snowflake `EMBED_TEXT_768` + vector search |
+| Payments | Razorpay (₹ India) |
 | File Storage | Snowflake Internal Stage |
 | Email | Resend |
 
@@ -28,11 +31,20 @@ User → Next.js App Router (Vercel)
          └── api/         → Route Handlers
                 │
                 ├── lib/agents/orchestrator.ts → Central AI coordinator
-                │     ├── cv-parser.ts        → Cortex COMPLETE() for CV parsing
-                │     ├── job-matcher.ts      → Keyword + vector matching
-                │     ├── sop-writer.ts       → SOP/Cover letter via Cortex
-                │     └── skill-analyzer.ts   → Gap analysis
+                │     ├── cv-parser.ts / cv-enhancer.ts  → CV parse & enhance (Perplexity)
+                │     ├── job-matcher.ts       → Keyword + vector matching
+                │     ├── job-evaluator.ts     → Fit/eval report per JD or position
+                │     ├── job-researcher.ts    → Live web job search (Perplexity)
+                │     ├── position-researcher.ts → Live academic position search
+                │     ├── lab-researcher.ts    → Lab/department insights
+                │     ├── scholarship-researcher.ts → Live scholarship discovery
+                │     ├── sop-writer.ts        → SOP / cover letter / LOR / outreach + self-audit
+                │     ├── interview-coach.ts   → Tailored interview questions
+                │     ├── skill-analyzer.ts    → Gap analysis
+                │     └── spam-checker.ts      → Job-post moderation
                 │
+                ├── lib/perplexity/client.ts → LLM & live web research
+                ├── lib/payments/razorpay.ts → Secure checkout + signature verify
                 └── lib/snowflake/client.ts → Connection pool
                       └── Snowflake DB (CL_* tables + vector embeddings)
 ```
@@ -47,6 +59,9 @@ User → Next.js App Router (Vercel)
 | `src/lib/agents/cv-parser.ts` | CV → structured JSON via Cortex |
 | `src/lib/agents/job-matcher.ts` | Keyword + semantic matching engine |
 | `src/lib/agents/sop-writer.ts` | SOP/cover letter generation |
+| `src/lib/perplexity/client.ts` | Perplexity LLM & live-research client |
+| `src/lib/payments/razorpay.ts` | Razorpay plans + payment-signature verification |
+| `src/lib/utils/fit-score.ts` | Deterministic CV↔opportunity fit scoring |
 | `src/lib/auth/config.ts` | NextAuth.js v5 configuration |
 | `src/lib/utils/rate-limit.ts` | Tier-based rate limiting |
 | `config/keywords.json` | Pre-built keyword taxonomy |
@@ -84,12 +99,20 @@ NEXTAUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
+# AI (Perplexity — parsing, generation, live research)
+PERPLEXITY_API_KEY=
+# PERPLEXITY_MODEL=sonar-pro        # optional override
+# PERPLEXITY_DAILY_CAP=50           # optional global daily cap
+
 # Payments
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
 
 # Email
 RESEND_API_KEY=
+
+# Cron protection
+CRON_SECRET=
 ```
 
 ## Snowflake Data Model
@@ -132,10 +155,11 @@ RESEND_API_KEY=
 - API routes: `route.ts` inside folder structure
 
 ### AI Agent Patterns
-- All AI calls go through `orchestrator.ts` — never call Cortex directly from routes
+- All AI calls go through `orchestrator.ts` — never call Perplexity directly from routes
 - Cache every AI response in `CL_AGENT_CACHE` with appropriate TTL
-- Use `EMBED_TEXT_768('e5-base-v2', text)` for all embedding generation
-- Use `SNOWFLAKE.CORTEX.COMPLETE('mistral-large2', prompt)` for generation tasks
+- Use `EMBED_TEXT_768('e5-base-v2', text)` (Snowflake) for all embedding generation
+- Use `callPerplexity()` (model `sonar-pro`) for parsing, generation, and live web research
+- Guard runtime-AI routes with `isPerplexityConfigured()` and degrade to a 503 with a clear message
 - Deduplication: hash(title + company + location) before insert
 
 ### Security
@@ -169,7 +193,9 @@ RESEND_API_KEY=
 | Issue | Fix |
 |-------|-----|
 | Snowflake connection timeout | Check warehouse auto-suspend settings, ensure X-SMALL is running |
-| Cortex COMPLETE returns empty | Verify warehouse has Cortex access enabled in account |
+| AI features return 503 | Set `PERPLEXITY_API_KEY` (and restart) — routes degrade gracefully without it |
+| Perplexity returns empty/invalid JSON | The agent retries with a JSON-repair pass; check the daily cap (`PERPLEXITY_DAILY_CAP`) |
+| Subscribe shows "payments not enabled" | Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` |
 | Vector search slow | Ensure `SEARCH OPTIMIZATION` is enabled on embedding columns |
 | Auth callback fails locally | Set `NEXTAUTH_URL=http://localhost:3000` exactly |
 | Rate limit false positives | Check `CL_USAGE` table for stale entries; TTL cleanup runs at app start |
