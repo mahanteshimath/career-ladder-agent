@@ -77,7 +77,8 @@ export function mergeResults(
   const merged = new Map<string, MatchResult>();
 
   // Normalize keyword relevance scores (from keywordSearch's MATCH_SCORE)
-  // into a 0.35–0.75 confidence band, leaving room for a semantic boost.
+  // into a 0.4–0.95 confidence band so results differentiate visibly instead
+  // of clustering at a single value. Semantic overlap can push it higher.
   const maxKw = Math.max(
     1,
     ...keywordRows.map((r) => Number(r.MATCH_SCORE) || 0)
@@ -94,7 +95,7 @@ export function mergeResults(
         type === "job"
           ? (row.COMPANY as string) || ""
           : (row.UNIVERSITY as string) || "",
-      score: Number((0.35 + relevance * 0.4).toFixed(3)),
+      score: Number((0.4 + relevance * 0.55).toFixed(3)),
       matchMethod: "keyword",
       keywords: row.KEYWORDS as string[],
       description: (row.DESCRIPTION as string)?.slice(0, 200),

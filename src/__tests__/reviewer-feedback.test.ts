@@ -72,15 +72,15 @@ describe("job matcher mergeResults", () => {
     expect(res[0].score).toBeGreaterThan(res[1].score);
   });
 
-  it("keeps keyword-only scores within the 0.35–0.75 band", () => {
+  it("keeps keyword-only scores within the 0.4–0.95 band", () => {
     const rows = [
       { ID: "a", TITLE: "A", COMPANY: "X", MATCH_SCORE: 9 },
       { ID: "b", TITLE: "B", COMPANY: "Y", MATCH_SCORE: 1 },
     ];
     const res = mergeResults(rows, [], "job");
     for (const r of res) {
-      expect(r.score).toBeGreaterThanOrEqual(0.35);
-      expect(r.score).toBeLessThanOrEqual(0.75);
+      expect(r.score).toBeGreaterThanOrEqual(0.4);
+      expect(r.score).toBeLessThanOrEqual(0.95);
     }
   });
 
@@ -88,7 +88,7 @@ describe("job matcher mergeResults", () => {
     const rows = [{ ID: "a", TITLE: "A", COMPANY: "X", MATCH_SCORE: 5 }];
     const res = mergeResults(rows, [{ id: "a", score: 0.8, title: "A" }], "job");
     expect(res[0].matchMethod).toBe("hybrid");
-    expect(res[0].score).toBeGreaterThan(0.75);
+    expect(res[0].score).toBeGreaterThan(0.95);
   });
 
   it("adds semantic-only results", () => {

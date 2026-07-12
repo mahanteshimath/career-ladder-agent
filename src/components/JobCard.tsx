@@ -10,6 +10,8 @@ interface MatchResult {
   matchMethod: "keyword" | "semantic" | "hybrid";
   location?: string;
   description?: string;
+  sourceUrl?: string;
+  live?: boolean;
 }
 
 interface JobCardProps {
@@ -44,14 +46,22 @@ export function JobCard({ match, userTier, onViewDetails, onGenerateSop }: JobCa
           )}
         </div>
         <div className="flex flex-col items-end gap-1 ml-3">
-          <span className={`text-sm font-bold px-2 py-0.5 rounded ${scoreColor}`}>
-            {Math.round(match.score * 100)}%
-          </span>
-          <span
-            className={`text-xs px-2 py-0.5 rounded ${methodBadge[match.matchMethod]}`}
-          >
-            {match.matchMethod}
-          </span>
+          {match.live ? (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+              Live
+            </span>
+          ) : (
+            <>
+              <span className={`text-sm font-bold px-2 py-0.5 rounded ${scoreColor}`}>
+                {Math.round(match.score * 100)}%
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${methodBadge[match.matchMethod]}`}
+              >
+                {match.matchMethod}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -75,6 +85,16 @@ export function JobCard({ match, userTier, onViewDetails, onGenerateSop }: JobCa
         >
           Generate SOP
         </button>
+        {match.sourceUrl && (
+          <a
+            href={match.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm px-3 py-1 border border-border rounded hover:bg-muted transition-colors text-foreground ml-auto"
+          >
+            Apply ↗
+          </a>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { JobCard } from "@/components/JobCard";
 import {
   Briefcase,
@@ -11,6 +12,8 @@ import {
   FileText,
   RefreshCw,
   AlertTriangle,
+  Sparkles,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,6 +26,10 @@ interface MatchItem {
   targetType?: "job" | "position";
   location?: string;
   description?: string;
+  sourceUrl?: string;
+  requiredSkills?: string[];
+  salaryRange?: string;
+  live?: boolean;
 }
 
 interface CvItem {
@@ -39,6 +46,11 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [liveJobs, setLiveJobs] = useState<MatchItem[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<MatchItem | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -94,6 +106,53 @@ export default function MatchesPage() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const findLiveJobs = async () => {
+    if (!selectedCvId) return;
+    setLiveLoading(true);
+    setLiveError(null);
+    setLiveJobs([]);
+    try {
+      const res = await fetch("/api/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cvId: selectedCvId, targetType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const raw = (targetType === "job" ? data.data?.jobs : data.data?.positions) || [];
+        const items: MatchItem[] = raw.map((j: Record<string, unknown>, i: number) => ({
+          id: `live-${targetType}-${i}`,
+          title: String(j.title || "Untitled"),
+          organization: String(j.company || j.university || ""),
+          score: 0,
+          matchMethod: "semantic" as const,
+          targetType,
+          location: (j.location as string) || (j.country as string) || undefined,
+          description: (j.description as string) || undefined,
+          sourceUrl: (j.sourceUrl as string) || undefined,
+          requiredSkills: (j.requiredSkills as string[]) || undefined,
+          salaryRange: (j.salaryRange as string) || undefined,
+          live: true,
+        }));
+        setLiveJobs(items);
+        if (items.length === 0) {
+          setLiveError("No live results found right now. Try again shortly.");
+        }
+      } else {
+        setLiveError(data.error?.message || "Live search is unavailable right now.");
+      }
+    } catch {
+      setLiveError("Network error during live search.");
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  const openDetail = (id: string) => {
+    const item = [...matches, ...liveJobs].find((m) => m.id === id);
+    if (item) setDetailItem(item);
   };
 
   return (
@@ -220,6 +279,27 @@ export default function MatchesPage() {
                   )}
                 </button>
               </div>
+
+              {/* Live web search button */}
+              <div className="sm:self-end">
+                <button
+                  onClick={findLiveJobs}
+                  disabled={liveLoading || !selectedCvId}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 border border-primary text-primary text-sm font-medium rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {liveLoading ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      Searching web...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={15} />
+                      Find Live {targetType === "job" ? "Jobs" : "Positions"}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {generating && (
@@ -254,8 +334,8 @@ export default function MatchesPage() {
                     key={match.id}
                     match={match}
                     userTier="premium"
-                    onViewDetails={(id) => console.log("View", id)}
-                    onGenerateSop={(id) => console.log("SOP", id)}
+                    onViewDetails={openDetail}
+                    onGenerateSop={() => router.push("/dashboard/generate")}
                   />
                 ))}
               </div>
@@ -276,9 +356,129 @@ export default function MatchesPage() {
               </div>
             )
           )}
+
+          {/* Live web results */}
+          {(liveLoading || liveError || liveJobs.length > 0) && (
+            <div className="mt-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles size={15} className="text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Live Results {liveJobs.length > 0 ? `(${liveJobs.length})` : ""}
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                  fresh from the web
+                </span>
+              </div>
+              {liveLoading && (
+                <div className="text-xs text-muted-foreground flex items-center gap-2 py-4">
+                  <Loader2 size={14} className="animate-spin" />
+                  Searching the live web for {targetType === "job" ? "jobs" : "positions"} matching your CV — this can take up to a minute...
+                </div>
+              )}
+              {liveError && !liveLoading && (
+                <div className="p-3 rounded-lg text-sm bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  {liveError}
+                </div>
+              )}
+              {liveJobs.length > 0 && !liveLoading && (
+                <div className="grid gap-4">
+                  {liveJobs.map((job) => (
+                    <JobCard
+                      key={job.id}
+                      match={job}
+                      userTier="premium"
+                      onViewDetails={openDetail}
+                      onGenerateSop={() => router.push("/dashboard/generate")}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
         );
       })()}
+
+      {detailItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setDetailItem(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between p-4 border-b border-border">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-foreground">{detailItem.title}</h2>
+                <p className="text-sm text-muted-foreground">{detailItem.organization}</p>
+                {detailItem.location && (
+                  <p className="text-xs text-muted-foreground mt-0.5">📍 {detailItem.location}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setDetailItem(null)}
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto space-y-4 text-sm">
+              {!detailItem.live && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                    Match: {Math.round(detailItem.score * 100)}%
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
+                    {detailItem.matchMethod}
+                  </span>
+                </div>
+              )}
+              {detailItem.description && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</h3>
+                  <p className="mt-1 text-foreground leading-relaxed whitespace-pre-wrap">{detailItem.description}</p>
+                </div>
+              )}
+              {detailItem.requiredSkills && detailItem.requiredSkills.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Required Skills</h3>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {detailItem.requiredSkills.map((s) => (
+                      <span key={s} className="px-2 py-0.5 text-xs rounded-full bg-muted text-foreground">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detailItem.salaryRange && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Salary</h3>
+                  <p className="mt-1 text-foreground">{detailItem.salaryRange}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 p-4 border-t border-border">
+              <button
+                onClick={() => { setDetailItem(null); router.push("/dashboard/generate"); }}
+                className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors"
+              >
+                Generate SOP
+              </button>
+              {detailItem.sourceUrl && (
+                <a
+                  href={detailItem.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+                >
+                  Apply ↗
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
