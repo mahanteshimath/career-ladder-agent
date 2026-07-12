@@ -6,24 +6,28 @@
 --        Alternatively, skip DROPs and rely on IF NOT EXISTS for incremental updates.
 
 -- ============================================================
--- DROP ALL (uncomment to reset — DESTRUCTIVE!)
+-- DROP ALL (uncomment to reset — DESTRUCTIVE! Wipes ALL data.)
+-- WARNING: These are intentionally commented out. The bootstrap script
+-- executes every non-comment statement, so leaving these live would drop
+-- all tables (including CL_USERS) and destroy production data on each run.
+-- Uncomment ONLY for a deliberate, full reset.
 -- ============================================================
-DROP TASK IF EXISTS CL_CACHE_CLEANUP;
-DROP TASK IF EXISTS CL_OTP_CLEANUP;
-DROP TABLE IF EXISTS CL_EVALUATIONS;
-DROP TABLE IF EXISTS CL_OTP_CODES;
-DROP TABLE IF EXISTS CL_TRACKER;
-DROP TABLE IF EXISTS CL_USAGE;
-DROP TABLE IF EXISTS CL_ISSUES;
-DROP TABLE IF EXISTS CL_AGENT_CACHE;
-DROP TABLE IF EXISTS CL_DRAFTS;
-DROP TABLE IF EXISTS CL_MATCHES;
-DROP TABLE IF EXISTS CL_JOBS;
-DROP TABLE IF EXISTS CL_POSITIONS;
-DROP TABLE IF EXISTS CL_CVS;
-DROP TABLE IF EXISTS CL_INSTITUTIONS;
-DROP TABLE IF EXISTS CL_USERS;
-DROP STAGE IF EXISTS CAREERMATCH_STAGE;
+-- DROP TASK IF EXISTS CL_CACHE_CLEANUP;
+-- DROP TASK IF EXISTS CL_OTP_CLEANUP;
+-- DROP TABLE IF EXISTS CL_EVALUATIONS;
+-- DROP TABLE IF EXISTS CL_OTP_CODES;
+-- DROP TABLE IF EXISTS CL_TRACKER;
+-- DROP TABLE IF EXISTS CL_USAGE;
+-- DROP TABLE IF EXISTS CL_ISSUES;
+-- DROP TABLE IF EXISTS CL_AGENT_CACHE;
+-- DROP TABLE IF EXISTS CL_DRAFTS;
+-- DROP TABLE IF EXISTS CL_MATCHES;
+-- DROP TABLE IF EXISTS CL_JOBS;
+-- DROP TABLE IF EXISTS CL_POSITIONS;
+-- DROP TABLE IF EXISTS CL_CVS;
+-- DROP TABLE IF EXISTS CL_INSTITUTIONS;
+-- DROP TABLE IF EXISTS CL_USERS;
+-- DROP STAGE IF EXISTS CAREERMATCH_STAGE;
 
 -- ============================================================
 -- STAGE: Internal stage for CV file storage
