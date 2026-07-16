@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
         payload: {
           cvSummary,
           customInstructions: customInstructions || "",
+          currentDate,
         },
       });
     }

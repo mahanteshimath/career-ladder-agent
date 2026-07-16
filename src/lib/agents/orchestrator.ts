@@ -109,7 +109,8 @@ export async function orchestrate(request: AgentRequest): Promise<AgentResponse>
       case "research_jobs": {
         const jobResult = await searchJobs(
           request.payload.cvSummary as string,
-          request.payload.customInstructions as string | undefined
+          request.payload.customInstructions as string | undefined,
+          request.payload.currentDate as string | undefined
         );
         if ("error" in jobResult) throw new Error(jobResult.error);
         // Persist discovered jobs to DB (non-blocking)

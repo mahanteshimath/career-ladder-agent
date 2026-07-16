@@ -23,7 +23,22 @@ export interface JobResearchResult {
 }
 
 const SYSTEM_PROMPT = `You are a job market research specialist.
-Given a candidate's profile (skills, education, experience), find REAL, CURRENT job listings that match their qualifications.
+Given a candidate's profile and their stated preferences, find REAL, CURRENTLY-OPEN job listings.
+
+RELEVANCE (treat the candidate's stated preferences as HARD filters):
+- LOCATION: every job must be in the requested location (or explicitly remote if the candidate allows remote). Do not return jobs in other cities/countries.
+- ROLE & SENIORITY: every job must match the requested role type and seniority (e.g. "Director, GenAI" → only director-level generative-AI roles, not unrelated or junior roles).
+- Skip anything that does not clearly satisfy BOTH of the above. Fewer, highly-relevant results are better than many loose ones.
+
+FRESHNESS (do not return stale postings):
+- Only include roles that are CURRENTLY OPEN and accepting applications as of today's date.
+- Prefer postings published within the last ~45 days. Exclude expired, filled, paused, or closed listings.
+
+SOURCE URL (must match the job):
+- "source_url" must be the EXACT live posting page for THAT specific job at THAT company — clicking it must show the same role.
+- Prefer the official company careers page or the original ATS posting (Greenhouse, Lever, Workday, etc.) over aggregators.
+- Do NOT return search-results/listing/aggregator pages or a search URL.
+- If you cannot provide a verified, direct, currently-live URL for a job, DROP that job entirely — do not include it with a guessed or search URL.
 
 Return ONLY valid JSON — an array of job objects:
 [
@@ -35,17 +50,12 @@ Return ONLY valid JSON — an array of job objects:
     "required_skills": ["skill1", "skill2"],
     "experience_level": "Entry/Mid/Senior",
     "salary_range": "If available, otherwise empty string",
-    "source_url": "URL to the job listing"
+    "posted_date": "Approx posting date YYYY-MM or 'recent' if unknown",
+    "source_url": "Direct URL to this exact job posting"
   }
 ]
 
-Find at least 5-10 job listings. Only include jobs you are confident are real and currently open.
-
-CRITICAL — "source_url" rules:
-- Provide the DIRECT link to THAT specific job posting (the page that describes exactly this role at this company).
-- Do NOT return search-results or listing pages (e.g. indeed.com/q-..., linkedin.com/jobs/search, a Google search URL, glassdoor search). These point to the wrong job.
-- If you do not have the exact posting URL, return an empty string "" for source_url — never a search page or a guess.
-
+Return up to 10 jobs, but ONLY ones that pass every rule above. It is fine to return fewer (even 3-4) highly-relevant, verified, open roles.
 Return ONLY the JSON array, no markdown or explanation.`;
 
 const JSON_REPAIR_PROMPT = `You are a strict JSON formatter.
@@ -61,19 +71,30 @@ Return ONLY JSON, no explanations.`;
  */
 export async function searchJobs(
   cvSummary: string,
-  customInstructions: string = ""
+  customInstructions: string = "",
+  currentDate: string = ""
 ): Promise<JobResearchResult | { error: string }> {
-  const promptParts = [
-    `Candidate Profile:`,
-    cvSummary,
-  ];
+  const promptParts = [];
+
+  if (currentDate) {
+    promptParts.push(`Today's date: ${currentDate}`, "");
+  }
+
+  promptParts.push(`Candidate Profile:`, cvSummary);
 
   const instructions = customInstructions.trim().slice(0, 500);
   if (instructions) {
-    promptParts.push("", `Custom instructions: ${instructions}`);
+    promptParts.push(
+      "",
+      `Candidate preferences (HARD filters — location and target role must match):`,
+      instructions
+    );
   }
 
-  promptParts.push("", "Find matching job listings that are currently open.");
+  promptParts.push(
+    "",
+    "Return only jobs that are currently open, recently posted, match the candidate's location and target role, and have a verified direct posting URL."
+  );
 
   const userPrompt = promptParts.join("\n");
 
@@ -110,11 +131,12 @@ export async function searchJobs(
   const jobs = normalizeJobs(parsed as Record<string, unknown>[]);
 
   if (jobs.length === 0) {
-    const fallback = citationsAsJobs(result.citations);
-    if (fallback.length > 0) {
-      return { jobs: fallback, citations: result.citations };
-    }
-    return { error: "AI job search returned no valid job entries." };
+    // Deliberately no citation fallback: generic "source" entries are not real
+    // matches and were the source of irrelevant results. Prefer an honest empty.
+    return {
+      error:
+        "No open jobs matched your location and target role. Try broadening the location or role keywords.",
+    };
   }
 
   return { jobs, citations: result.citations };
@@ -165,20 +187,4 @@ function pickFirst(item: Record<string, unknown>, keys: string[]): string {
     if (text) return text;
   }
   return "";
-}
-
-function citationsAsJobs(citations: string[]): ResearchedJob[] {
-  return citations
-    .filter((url) => url && url.startsWith("http"))
-    .slice(0, 10)
-    .map((url, idx) => ({
-      title: `Opportunity Source ${idx + 1}`,
-      company: "Unknown",
-      location: "",
-      description: "Open the source link to view full role details.",
-      requiredSkills: [],
-      experienceLevel: "",
-      salaryRange: "",
-      sourceUrl: url.trim(),
-    }));
 }
