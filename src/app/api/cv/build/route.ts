@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
 import { cvEnhancer } from "@/lib/agents/cv-enhancer";
 import { insertDraft, trackUsage } from "@/lib/snowflake/queries";
-import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import { apiSuccess, badRequest, serverError, getAuthenticatedUser } from "@/lib/api-response";
 import { z } from "zod";
+
+// AI enhancement (Perplexity) can take longer than the default serverless
+// timeout — without this the request 504s and the client shows "Network error".
+export const maxDuration = 60;
 
 const buildSchema = z.object({
   templateId: z.string().min(1),
@@ -38,20 +41,10 @@ const buildSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const { userId, tier, error } = await getAuthenticatedUser();
+  const { userId, error } = await getAuthenticatedUser();
   if (error) return error;
 
-  // Tier check — disabled for testing
-  // if (tier === "free") {
-  //   return badRequest("Upgrade to Basic or Premium to use CV Builder");
-  // }
-
-  // Rate limit — disabled for testing
-  // try {
-  //   await enforceRateLimit(userId, tier, "sop_generate");
-  // } catch (err) {
-  //   return badRequest((err as Error).message);
-  // }
+  // Tier check + rate limit disabled for testing.
 
   const body = await request.json();
   const parsed = buildSchema.safeParse(body);

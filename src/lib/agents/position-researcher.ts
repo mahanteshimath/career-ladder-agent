@@ -52,6 +52,12 @@ Return ONLY valid JSON — an array of position objects:
 ]
 
 Find at least 5-10 positions. Only include positions you are confident are real.
+
+CRITICAL — "source_url" rules:
+- Provide the DIRECT link to THAT specific position posting (the page describing exactly this role at this university/lab).
+- Do NOT return search-results or listing/aggregator pages or a Google search URL — these point to the wrong position.
+- If you do not have the exact posting URL, return an empty string "" for source_url — never a search page or a guess.
+
 Return ONLY the JSON array, no markdown or explanation.`;
 
 const JSON_REPAIR_PROMPT = `You are a strict JSON formatter.

@@ -135,39 +135,65 @@ export default function InterviewPage() {
             </div>
           )}
 
-          <div className="space-y-3">
-            {prep.questions.map((q, i) => (
-              <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    <span className="text-gray-400 mr-2">{i + 1}.</span>{q.question}
-                  </p>
-                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full shrink-0 ${CATEGORY_TONE[q.category] || "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
-                    {q.category}
-                  </span>
+          <div className="space-y-6">
+            {(() => {
+              const ORDER = ["research", "behavioral", "technical", "motivation", "role-specific"];
+              const LABELS: Record<string, string> = {
+                research: "Research",
+                behavioral: "Behavioral",
+                technical: "Technical",
+                motivation: "Motivation",
+                "role-specific": "Role-specific",
+                other: "Other",
+              };
+              // Keep each question's original index so the reveal toggle stays stable.
+              const groups = new Map<string, { q: InterviewQuestion; i: number }[]>();
+              prep.questions.forEach((q, i) => {
+                const key = ORDER.includes(q.category) ? q.category : "other";
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key)!.push({ q, i });
+              });
+              const keys = [...ORDER, "other"].filter((k) => groups.has(k));
+              return keys.map((key) => (
+                <div key={key}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{LABELS[key]}</h3>
+                    <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${CATEGORY_TONE[key] || "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
+                      {groups.get(key)!.length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {groups.get(key)!.map(({ q, i }) => (
+                      <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-gray-400 mr-2">{i + 1}.</span>{q.question}
+                        </p>
+                        {q.suggestedPoints.length > 0 && (
+                          <>
+                            <button
+                              onClick={() => toggle(i)}
+                              className="mt-2 text-xs text-blue-600 hover:underline"
+                            >
+                              {revealed.has(i) ? "Hide talking points" : "Show talking points"}
+                            </button>
+                            {revealed.has(i) && (
+                              <ul className="mt-2 space-y-1 pl-1">
+                                {q.suggestedPoints.map((p, j) => (
+                                  <li key={j} className="text-xs text-gray-600 dark:text-gray-400 flex gap-2">
+                                    <span className="text-gray-400">•</span>
+                                    <span>{p}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                {q.suggestedPoints.length > 0 && (
-                  <>
-                    <button
-                      onClick={() => toggle(i)}
-                      className="mt-2 text-xs text-blue-600 hover:underline"
-                    >
-                      {revealed.has(i) ? "Hide talking points" : "Show talking points"}
-                    </button>
-                    {revealed.has(i) && (
-                      <ul className="mt-2 space-y-1 pl-1">
-                        {q.suggestedPoints.map((p, j) => (
-                          <li key={j} className="text-xs text-gray-600 dark:text-gray-400 flex gap-2">
-                            <span className="text-gray-400">•</span>
-                            <span>{p}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
+              ));
+            })()}
           </div>
 
           <p className="text-[11px] text-muted-foreground/70 pt-2 border-t border-border">

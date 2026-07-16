@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { ResearchTab } from "./research-tab";
 import { fitBand, type FitBand } from "@/lib/utils/fit-score";
+import { resolveApplyLink } from "@/lib/utils/apply-url";
 
 interface Position {
   ID: string;
@@ -351,8 +352,21 @@ export default function PositionsPage() {
         </div>
       ) : positions.length === 0 ? (
         <div className="mt-8 text-center py-12 bg-card border border-border rounded-xl">
-          <p className="text-muted-foreground">No positions found matching your filters.</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">Try adjusting your search or filters.</p>
+          <p className="text-muted-foreground">
+            {keyword
+              ? `No pre-listed positions match "${keyword}".`
+              : "No positions found matching your filters."}
+          </p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            The browse list is a small curated set. Use AI Research to search the live web for
+            current openings in your exact field.
+          </p>
+          <button
+            onClick={() => setActiveTab("research")}
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            🔎 Search live with AI Research
+          </button>
         </div>
       ) : (
         <div className="mt-6 space-y-3">
@@ -449,16 +463,19 @@ export default function PositionsPage() {
                             >
                               ✉️ Draft Email
                             </button>
-                            {pos.SOURCE_URL && (
-                              <a
-                                href={pos.SOURCE_URL}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:underline"
-                              >
-                                Apply →
-                              </a>
-                            )}
+                            {(() => {
+                              const link = resolveApplyLink(pos.SOURCE_URL, pos.TITLE, pos.UNIVERSITY);
+                              return (
+                                <a
+                                  href={link.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  {link.isSearch ? "Search this position →" : "Apply →"}
+                                </a>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

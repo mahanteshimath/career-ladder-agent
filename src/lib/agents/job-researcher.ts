@@ -40,6 +40,12 @@ Return ONLY valid JSON — an array of job objects:
 ]
 
 Find at least 5-10 job listings. Only include jobs you are confident are real and currently open.
+
+CRITICAL — "source_url" rules:
+- Provide the DIRECT link to THAT specific job posting (the page that describes exactly this role at this company).
+- Do NOT return search-results or listing pages (e.g. indeed.com/q-..., linkedin.com/jobs/search, a Google search URL, glassdoor search). These point to the wrong job.
+- If you do not have the exact posting URL, return an empty string "" for source_url — never a search page or a guess.
+
 Return ONLY the JSON array, no markdown or explanation.`;
 
 const JSON_REPAIR_PROMPT = `You are a strict JSON formatter.

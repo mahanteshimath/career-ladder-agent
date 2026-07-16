@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { JobCard } from "@/components/JobCard";
+import { resolveApplyLink } from "@/lib/utils/apply-url";
 import {
   Briefcase,
   Upload,
@@ -393,18 +394,23 @@ export default function MatchesPage() {
                 )}
             </div>
             <div className="flex items-center gap-2 p-4 border-t border-border">
-              {detailItem.sourceUrl ? (
-                <a
-                  href={detailItem.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors"
-                >
-                  Apply ↗
-                </a>
-              ) : (
-                <span className="text-xs text-muted-foreground">No application link provided.</span>
-              )}
+              {(() => {
+                const link = resolveApplyLink(
+                  detailItem.sourceUrl,
+                  detailItem.title,
+                  detailItem.organization
+                );
+                return (
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors"
+                  >
+                    {link.isSearch ? "Search this role ↗" : "Apply ↗"}
+                  </a>
+                );
+              })()}
               <button
                 onClick={() => saveToTracker(detailItem)}
                 disabled={savedIds.has(detailItem.id) || savingId === detailItem.id}

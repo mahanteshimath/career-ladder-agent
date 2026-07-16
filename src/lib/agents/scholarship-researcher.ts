@@ -27,7 +27,7 @@ const SYSTEM_PROMPT = `You are a scholarship research specialist for students ap
 Given a candidate profile and criteria, find REAL, CURRENT scholarships/funding (government, university, or private).
 
 Only include scholarships that:
-1. Match the requested study level and field
+1. STRICTLY match the requested study level. If the user asks for PhD, return ONLY PhD/doctoral funding — do NOT include Postdoc, Masters, or Undergraduate awards. Treat the level as a hard filter.
 2. Are open to the candidate's nationality/region where relevant
 3. Have application windows that are current or clearly recurring
 4. Are verifiable from an official source
@@ -104,7 +104,36 @@ export async function searchScholarships(
     return { error: "AI scholarship search returned no valid entries." };
   }
 
-  return { scholarships, citations: result.citations };
+  // Guardrail: the model sometimes ignores the requested level (e.g. returns
+  // Postdoc fellowships for a PhD search). Drop clear level mismatches.
+  const requestedCat = levelCategory(level);
+  const filtered = requestedCat
+    ? scholarships.filter((s) => {
+        const cat = levelCategory(s.level);
+        return !cat || cat === requestedCat;
+      })
+    : scholarships;
+
+  if (filtered.length === 0) {
+    return {
+      error: `No ${level}-level scholarships matched. Try a different level or broaden your field/region.`,
+    };
+  }
+
+  return { scholarships: filtered, citations: result.citations };
+}
+
+/**
+ * Classify a free-text level string into a canonical category.
+ * Postdoc is checked before PhD because "postdoctoral" contains "doctoral".
+ */
+function levelCategory(text: string): "postdoc" | "phd" | "masters" | "undergraduate" | null {
+  const t = (text || "").toLowerCase();
+  if (/post[-\s]?doc/.test(t)) return "postdoc";
+  if (/phd|ph\.d|doctoral|doctorate/.test(t)) return "phd";
+  if (/master|msc|m\.s|mtech|graduate/.test(t)) return "masters";
+  if (/under[-\s]?grad|bachelor|b\.s|bsc|btech/.test(t)) return "undergraduate";
+  return null;
 }
 
 function pickFirst(obj: Record<string, unknown>, keys: string[]): string {

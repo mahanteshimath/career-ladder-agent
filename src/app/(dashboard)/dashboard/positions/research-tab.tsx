@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { resolveApplyLink } from "@/lib/utils/apply-url";
 
 interface CvOption {
   ID: string;
@@ -352,16 +353,19 @@ export function ResearchTab({ targetType, onResultsPersisted }: Props) {
                     {item.deadline && (
                       <span className="text-xs text-amber-600 dark:text-amber-400">{item.deadline}</span>
                     )}
-                    {item.sourceUrl && (
-                      <a
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        {isPosition ? "Apply →" : "View →"}
-                      </a>
-                    )}
+                    {(() => {
+                      const link = resolveApplyLink(item.sourceUrl, item.title, item.university || item.company);
+                      return (
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          {link.isSearch ? (isPosition ? "Search →" : "Search →") : isPosition ? "Apply →" : "View →"}
+                        </a>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
