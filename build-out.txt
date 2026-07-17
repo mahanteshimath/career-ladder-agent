@@ -1,0 +1,10 @@
+
+> career-ladder-agent@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.5.19
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 17.3s
+   Linting and checking validity of types ...

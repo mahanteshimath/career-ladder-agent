@@ -159,3 +159,47 @@ h1, h2, h3 {
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Landing page: premium motion + texture (GPU-safe, degrades clean)  */
+/* ------------------------------------------------------------------ */
+
+/* Scroll-driven reveal — CSS-only via view() timeline. Unsupported
+   browsers simply show content (never left hidden). */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 26%;
+    }
+  }
+  /* Slow floating mesh orbs (transform-only) */
+  @keyframes float-orb {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%      { transform: translate3d(0, -24px, 0); }
+  }
+  .float-orb      { animation: float-orb 11s ease-in-out infinite; }
+  .float-orb-slow { animation: float-orb 17s ease-in-out infinite; }
+}
+
+/* Fine film-grain for premium dark surfaces (fixed via ::before, non-scrolling) */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+/* Concentric "double-bezel" inner highlight for glass cards */
+.bezel-hi {
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.12);
+}

@@ -12,12 +12,16 @@ import {
   FileCheck2,
   GraduationCap,
   Zap,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { PricingCards } from "@/components/PricingCards";
 import { Logo } from "@/components/Logo";
 
-const heroPattern =
-  "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.18) 1px, transparent 0)";
+const dotGrid =
+  "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.14) 1px, transparent 0)";
+
+const ease = "ease-[cubic-bezier(0.32,0.72,0,1)]";
 
 const steps = [
   {
@@ -44,7 +48,7 @@ const features = [
   {
     icon: Target,
     title: "Smart fit score",
-    desc: "See how well your CV matches each job or position, with the exact keywords you're missing.",
+    desc: "See exactly how well your CV matches each job or position — with the precise keywords you're missing and how to close the gap.",
   },
   {
     icon: FileText,
@@ -69,7 +73,7 @@ const features = [
   {
     icon: FileCheck2,
     title: "ATS-safe CV builder",
-    desc: "Build an enhanced CV and export a clean, single-column version any recruiter system can read.",
+    desc: "Export a clean, single-column CV any recruiter system can read.",
   },
 ];
 
@@ -89,127 +93,276 @@ const stats = [
 export default function HomePage() {
   return (
     <main className="min-h-screen">
-      {/* Hero */}
-      <header className="relative overflow-hidden bg-[radial-gradient(120%_120%_at_50%_-10%,#3a56d4_0%,#2f45ac_45%,#1e2a66_100%)] text-white dark:bg-[radial-gradient(120%_120%_at_50%_-10%,#1e2a66_0%,#131a3f_50%,#0a0e1a_100%)]">
+      {/* ===================== HERO ===================== */}
+      <header className="grain relative isolate overflow-hidden bg-[#070b16] text-white">
+        {/* mesh orbs */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div className="float-orb absolute left-1/2 top-[-14%] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-[#3a56d4] opacity-30 blur-[130px]" />
+          <div className="float-orb-slow absolute right-[-6%] top-[14%] h-[28rem] w-[28rem] rounded-full bg-[#5a6fd6] opacity-20 blur-[130px]" />
+          <div className="absolute bottom-[-16%] left-[-8%] h-[26rem] w-[26rem] rounded-full bg-[#1e2a66] opacity-40 blur-[120px]" />
+        </div>
+        {/* dot grid */}
         <div
-          className="absolute inset-0 opacity-50"
-          style={{ backgroundImage: heroPattern, backgroundSize: "56px 56px" }}
           aria-hidden
+          className="absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(80%_60%_at_50%_0%,black,transparent)]"
+          style={{ backgroundImage: dotGrid, backgroundSize: "48px 48px" }}
         />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" aria-hidden />
 
-        <div className="relative mx-auto max-w-5xl px-6 pt-20 pb-24 text-center sm:pt-24">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur-sm">
-            <Zap size={14} strokeWidth={2} />
-            One copilot for jobs and higher study
-          </span>
+        <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-6 pt-20 pb-28 lg:grid-cols-[1.05fr_0.95fr] lg:pt-28">
+          {/* Left: copy */}
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
+              <Sparkles size={13} strokeWidth={1.75} className="text-[#8ea3f7]" />
+              One copilot for jobs &amp; higher study
+            </span>
 
-          <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl text-balance">
-            Your AI career copilot
-          </h1>
+            <h1 className="mt-6 text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-[4.25rem]">
+              Your AI career{" "}
+              <span className="bg-gradient-to-r from-white via-[#c7d0ff] to-[#8ea3f7] bg-clip-text text-transparent">
+                copilot
+              </span>
+            </h1>
 
-          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/80">
-            Upload your CV to get matched roles and positions, a fit score, and
-            tailored SOPs, cover letters, and recommendation letters.
-          </p>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/70">
+              Upload your CV once. Get matched roles and positions, a precise fit
+              score, and tailored SOPs, cover letters, and recommendation letters —
+              in minutes.
+            </p>
 
-          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link
-              href="/login?callbackUrl=%2Fdashboard%2Fupload"
-              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-primary shadow-xl shadow-black/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0 cursor-pointer"
-            >
-              Upload your CV
-              <ArrowRight
-                size={18}
-                strokeWidth={2.25}
-                className="transition-transform group-hover:translate-x-0.5"
-              />
-            </Link>
-            <Link
-              href="#pricing"
-              className="inline-flex items-center justify-center rounded-xl border border-white/25 px-7 py-3.5 text-base font-medium text-white backdrop-blur-sm transition-all hover:bg-white/10 active:translate-y-px cursor-pointer"
-            >
-              View plans
-            </Link>
+            {/* CTAs — button-in-button */}
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link
+                href="/login?callbackUrl=%2Fdashboard%2Fupload"
+                className={`group inline-flex items-center gap-3 rounded-full bg-white py-2 pl-6 pr-2 text-[15px] font-semibold text-[#0a0e1a] shadow-xl shadow-black/30 transition-all duration-500 ${ease} hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer`}
+              >
+                Upload your CV
+                <span
+                  className={`flex h-9 w-9 items-center justify-center rounded-full bg-[#3a56d4] text-white transition-transform duration-500 ${ease} group-hover:translate-x-0.5 group-hover:-translate-y-px`}
+                >
+                  <ArrowRight size={16} strokeWidth={2.25} />
+                </span>
+              </Link>
+              <Link
+                href="#pricing"
+                className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/[0.04] px-6 py-3 text-[15px] font-medium text-white/90 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 active:scale-[0.98] cursor-pointer"
+              >
+                View plans
+              </Link>
+            </div>
+
+            <ul className="mt-12 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-white/60">
+              {trust.map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-2">
+                  <Icon size={15} strokeWidth={1.5} className="text-[#8ea3f7]" />
+                  {label}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <ul className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/75">
-            {trust.map(({ icon: Icon, label }) => (
-              <li key={label} className="flex items-center gap-2">
-                <Icon size={16} strokeWidth={1.75} className="text-white/60" />
-                {label}
-              </li>
-            ))}
-          </ul>
+          {/* Right: glass product peek (double-bezel) */}
+          <div className="relative lg:pl-4">
+            <div className="mx-auto max-w-md rounded-[2rem] border border-white/10 bg-white/[0.04] p-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
+              <div className="bezel-hi rounded-[1.5rem] border border-white/10 bg-[#0b1020]/70 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3a56d4]/20 text-[#8ea3f7]">
+                      <Target size={16} strokeWidth={1.75} />
+                    </span>
+                    <span className="text-sm font-medium text-white/90">Match analysis</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Live
+                  </span>
+                </div>
+
+                {/* score */}
+                <div className="mt-6 flex items-end justify-between">
+                  <div>
+                    <div className="text-5xl font-semibold tracking-tight text-white tabular-nums">
+                      92<span className="text-2xl text-white/50">%</span>
+                    </div>
+                    <div className="mt-1 text-sm text-white/50">Strong fit · Senior ML Engineer</div>
+                  </div>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-[#3a56d4] to-[#8ea3f7]" />
+                </div>
+
+                {/* matched keywords */}
+                <div className="mt-6 text-[11px] font-medium uppercase tracking-[0.14em] text-white/40">
+                  Matched skills
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {["PyTorch", "MLOps", "Distributed Training", "LLMs"].map((k) => (
+                    <span
+                      key={k}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/80"
+                    >
+                      <Check size={12} strokeWidth={2.5} className="text-emerald-300" />
+                      {k}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-white/60">
+                  <span className="font-medium text-white/80">Gap:</span> add &ldquo;Kubernetes&rdquo; and one
+                  publication to reach a 97% match.
+                </div>
+              </div>
+            </div>
+            {/* floating mini badge */}
+            <div className="absolute -left-2 bottom-6 hidden rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 shadow-xl shadow-black/40 backdrop-blur-xl sm:block">
+              <div className="text-xs text-white/50">SOP drafted</div>
+              <div className="text-sm font-semibold text-white">in 8 seconds</div>
+            </div>
+          </div>
         </div>
+
+        <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" aria-hidden />
       </header>
 
-      {/* How it works */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mb-14 max-w-2xl">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">How it works</h2>
+      {/* ===================== HOW IT WORKS ===================== */}
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <div className="reveal mb-16 max-w-2xl">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            How it works
+          </span>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            From CV to submission in three steps
+          </h2>
           <p className="mt-3 text-muted-foreground">
-            Three steps to move your job search or grad-school application forward.
+            Move your job search or grad-school application forward without the busywork.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="relative grid gap-6 md:grid-cols-3">
+          <div
+            aria-hidden
+            className="absolute left-0 right-0 top-[3.25rem] hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block"
+          />
           {steps.map(({ step, icon: Icon, title, desc }) => (
-            <div key={step} className="group relative rounded-2xl border border-border bg-card p-8 card-hover">
-              <span className="font-mono text-sm font-semibold text-primary/60 tabular-nums">{step}</span>
-              <div className="mt-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon size={22} strokeWidth={1.75} />
+            <div
+              key={step}
+              className="reveal group relative rounded-[1.5rem] border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1 card-hover"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <Icon size={22} strokeWidth={1.5} />
+                </div>
+                <span className="font-mono text-2xl font-semibold text-foreground/10 tabular-nums transition-colors group-hover:text-primary/30">
+                  {step}
+                </span>
               </div>
-              <h3 className="mt-5 text-lg font-semibold text-foreground">{title}</h3>
+              <h3 className="mt-6 text-lg font-semibold text-foreground">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Features */}
-      <section className="border-y border-border bg-muted/40">
-        <div className="mx-auto max-w-7xl px-6 py-20">
-          <div className="mb-14 max-w-2xl">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+      {/* ===================== FEATURES BENTO ===================== */}
+      <section className="border-y border-border bg-muted/30">
+        <div className="mx-auto max-w-7xl px-6 py-24">
+          <div className="reveal mb-16 max-w-2xl">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              Capabilities
+            </span>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl text-balance">
               Everything you need — for jobs and higher study
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Whether you&apos;re chasing a role or a research position, Career Ladder covers the
-              whole journey.
+              Whether you&apos;re chasing a role or a research position, Career Ladder covers
+              the whole journey.
             </p>
           </div>
 
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-            {features.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-card p-7 transition-colors hover:bg-muted/60">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon size={20} strokeWidth={1.75} />
+          <div className="grid gap-4 sm:grid-cols-2 lg:auto-rows-fr lg:grid-cols-3">
+            {features.map(({ icon: Icon, title, desc }, i) => {
+              const showcase = i === 0;
+              return (
+                <div
+                  key={title}
+                  className={`reveal group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1 card-hover ${
+                    showcase ? "lg:col-span-2 lg:row-span-2 lg:p-9" : ""
+                  }`}
+                >
+                  <div
+                    className={`flex items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15 ${
+                      showcase ? "h-14 w-14" : "h-11 w-11"
+                    }`}
+                  >
+                    <Icon size={showcase ? 26 : 20} strokeWidth={1.5} />
+                  </div>
+                  <h3
+                    className={`mt-5 font-semibold text-foreground ${
+                      showcase ? "text-2xl tracking-tight" : "text-base"
+                    }`}
+                  >
+                    {title}
+                  </h3>
+                  <p
+                    className={`mt-2 leading-relaxed text-muted-foreground ${
+                      showcase ? "text-[15px]" : "text-sm"
+                    }`}
+                  >
+                    {desc}
+                  </p>
+
+                  {showcase && (
+                    <div className="mt-auto pt-8">
+                      <div className="rounded-2xl border border-border bg-muted/40 p-5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-foreground">Overall fit</span>
+                          <span className="font-semibold text-primary tabular-nums">92%</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-border">
+                          <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-primary to-accent" />
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {["Keywords", "Skills", "Experience"].map((t) => (
+                            <span
+                              key={t}
+                              className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Stats */}
+      {/* ===================== STATS ===================== */}
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-14 text-center md:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-border px-6 md:grid-cols-4 md:divide-y-0">
           {stats.map((stat) => (
-            <div key={stat.label}>
-              <div className="text-3xl font-bold tracking-tight text-foreground tabular-nums">{stat.value}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+            <div key={stat.label} className="reveal px-6 py-12 text-center">
+              <div className="bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-4xl font-semibold tracking-tight text-transparent tabular-nums sm:text-5xl">
+                {stat.value}
+              </div>
+              <div className="mt-2 text-sm text-muted-foreground">{stat.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="px-6 py-20">
-        <div className="mb-14 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Simple, transparent pricing</h2>
+      {/* ===================== PRICING ===================== */}
+      <section id="pricing" className="px-6 py-24">
+        <div className="reveal mb-16 text-center">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            Pricing
+          </span>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Simple, transparent pricing
+          </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
             Start free. Upgrade when you need more power.
           </p>
@@ -217,30 +370,34 @@ export default function HomePage() {
         <PricingCards />
       </section>
 
-      {/* CTA */}
-      <section className="relative overflow-hidden bg-[radial-gradient(120%_140%_at_50%_0%,#3a56d4_0%,#2f45ac_55%,#1e2a66_100%)] dark:bg-[radial-gradient(120%_140%_at_50%_0%,#1e2a66_0%,#131a3f_60%,#0a0e1a_100%)]">
-        <div className="relative mx-auto max-w-4xl px-6 py-16 text-center text-white">
-          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+      {/* ===================== CTA BAND ===================== */}
+      <section className="px-6 pb-24">
+        <div className="grain relative isolate mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] bg-[#070b16] px-6 py-20 text-center text-white">
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+            <div className="float-orb absolute left-1/2 top-[-30%] h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-[#3a56d4] opacity-30 blur-[120px]" />
+            <div className="absolute bottom-[-40%] right-[10%] h-[24rem] w-[24rem] rounded-full bg-[#5a6fd6] opacity-20 blur-[120px]" />
+          </div>
+          <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl text-balance">
             Ready to move your career forward?
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-white/80">
+          <p className="mx-auto mt-4 max-w-lg text-white/70">
             Upload your CV and get matched roles, positions, and tailored documents in minutes.
           </p>
           <Link
             href="/login?callbackUrl=%2Fdashboard%2Fupload"
-            className="group mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 font-semibold text-primary shadow-xl shadow-black/20 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+            className={`group mt-9 inline-flex items-center gap-3 rounded-full bg-white py-2 pl-6 pr-2 text-[15px] font-semibold text-[#0a0e1a] shadow-xl shadow-black/30 transition-all duration-500 ${ease} hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer`}
           >
             Upload your CV
-            <ArrowRight
-              size={18}
-              strokeWidth={2.25}
-              className="transition-transform group-hover:translate-x-0.5"
-            />
+            <span
+              className={`flex h-9 w-9 items-center justify-center rounded-full bg-[#3a56d4] text-white transition-transform duration-500 ${ease} group-hover:translate-x-0.5 group-hover:-translate-y-px`}
+            >
+              <ArrowRight size={16} strokeWidth={2.25} />
+            </span>
           </Link>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ===================== FOOTER ===================== */}
       <footer className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-10">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
