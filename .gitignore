@@ -46,6 +46,8 @@ snowflake.log
 
 # agent skills (installed via `skills add`, not part of the app)
 .agents/
+.claude/
+skills-lock.json
 dev-server*.log
 prod-server.log
 prod-server.err.log
