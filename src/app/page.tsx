@@ -1,207 +1,206 @@
 import Link from "next/link";
+import {
+  ArrowRight,
+  Upload,
+  Search,
+  PenLine,
+  Target,
+  FileText,
+  Award,
+  Mail,
+  MessageSquare,
+  FileCheck2,
+  GraduationCap,
+  Zap,
+} from "lucide-react";
 import { PricingCards } from "@/components/PricingCards";
 import { Logo } from "@/components/Logo";
 
 const heroPattern =
-  "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.22) 1px, transparent 0)";
+  "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.18) 1px, transparent 0)";
+
+const steps = [
+  {
+    step: "01",
+    icon: Upload,
+    title: "Upload your CV",
+    desc: "Drop a PDF or DOCX. The AI extracts and structures your experience, skills, and qualifications in seconds.",
+  },
+  {
+    step: "02",
+    icon: Search,
+    title: "Get matched",
+    desc: "Hybrid keyword and semantic vector search surfaces the industry jobs and academic positions that actually fit.",
+  },
+  {
+    step: "03",
+    icon: PenLine,
+    title: "Generate documents",
+    desc: "Produce tailored SOPs, cover letters, and a skill-gap analysis — ready to submit in minutes, not days.",
+  },
+];
+
+const features = [
+  {
+    icon: Target,
+    title: "Smart fit score",
+    desc: "See how well your CV matches each job or position, with the exact keywords you're missing.",
+  },
+  {
+    icon: FileText,
+    title: "SOPs, cover & recommendation letters",
+    desc: "Generate tailored documents with a built-in quality self-audit that flags generic phrasing.",
+  },
+  {
+    icon: Award,
+    title: "Scholarship finder",
+    desc: "Discover real, current funding matched to your profile through live AI research.",
+  },
+  {
+    icon: Mail,
+    title: "Professor outreach",
+    desc: "Draft personalized emails that reference a supervisor's research — and track your pipeline.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Interview prep",
+    desc: "Practice tailored questions with talking points grounded in your own CV.",
+  },
+  {
+    icon: FileCheck2,
+    title: "ATS-safe CV builder",
+    desc: "Build an enhanced CV and export a clean, single-column version any recruiter system can read.",
+  },
+];
+
+const trust = [
+  { icon: GraduationCap, label: "Jobs & PhD / Masters" },
+  { icon: FileText, label: "Tailored SOPs & letters" },
+  { icon: Zap, label: "Results in seconds" },
+];
+
+const stats = [
+  { value: "10K+", label: "Positions indexed" },
+  { value: "<5s", label: "Average match time" },
+  { value: "2", label: "Paths, one copilot" },
+  { value: "24/7", label: "AI availability" },
+];
 
 export default function HomePage() {
   return (
     <main className="min-h-screen">
-      {/* Hero Section */}
-      <header className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 text-white dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900">
-        <div className="absolute inset-0 opacity-40" style={{ backgroundImage: heroPattern, backgroundSize: "60px 60px" }} />
+      {/* Hero */}
+      <header className="relative overflow-hidden bg-[radial-gradient(120%_120%_at_50%_-10%,#3a56d4_0%,#2f45ac_45%,#1e2a66_100%)] text-white dark:bg-[radial-gradient(120%_120%_at_50%_-10%,#1e2a66_0%,#131a3f_50%,#0a0e1a_100%)]">
+        <div
+          className="absolute inset-0 opacity-50"
+          style={{ backgroundImage: heroPattern, backgroundSize: "56px 56px" }}
+          aria-hidden
+        />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" aria-hidden />
 
-        <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] tracking-tight">
-            Your AI Career
-            <br />
-            <span className="bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-transparent">
-              Copilot
-            </span>
-          </h2>
-          <p className="mt-6 text-lg md:text-xl text-blue-100/90 max-w-2xl mx-auto leading-relaxed">
-            One AI copilot for both paths — land your next <strong className="font-semibold text-white">job</strong> or
-            your <strong className="font-semibold text-white">PhD/Masters</strong>. Upload your CV to get matched roles
-            and positions, a fit score, and tailored SOPs, cover letters, and recommendation letters.
+        <div className="relative mx-auto max-w-5xl px-6 pt-20 pb-24 text-center sm:pt-24">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur-sm">
+            <Zap size={14} strokeWidth={2} />
+            One copilot for jobs and higher study
+          </span>
+
+          <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl text-balance">
+            Your AI career copilot
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/80">
+            Upload your CV to get matched roles and positions, a fit score, and
+            tailored SOPs, cover letters, and recommendation letters.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/login?callbackUrl=%2Fdashboard%2Fupload"
-              className="inline-flex items-center justify-center bg-white text-indigo-700 px-8 py-3.5 rounded-xl font-semibold text-base hover:bg-gray-50 transition-all shadow-xl shadow-indigo-900/30 hover:shadow-2xl hover:-translate-y-0.5"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-primary shadow-xl shadow-black/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0 cursor-pointer"
             >
-              Upload Your CV
-              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+              Upload your CV
+              <ArrowRight
+                size={18}
+                strokeWidth={2.25}
+                className="transition-transform group-hover:translate-x-0.5"
+              />
             </Link>
             <Link
               href="#pricing"
-              className="inline-flex items-center justify-center border border-white/30 text-white px-8 py-3.5 rounded-xl font-medium text-base hover:bg-white/10 backdrop-blur-sm transition-all"
+              className="inline-flex items-center justify-center rounded-xl border border-white/25 px-7 py-3.5 text-base font-medium text-white backdrop-blur-sm transition-all hover:bg-white/10 active:translate-y-px cursor-pointer"
             >
-              View Plans
+              View plans
             </Link>
           </div>
 
-          {/* Trust indicators */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-blue-200/80">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-              Jobs &amp; PhD/Masters
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-              Tailored SOPs &amp; letters
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
-              Results in seconds
-            </div>
-          </div>
+          <ul className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/75">
+            {trust.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-2">
+                <Icon size={16} strokeWidth={1.75} className="text-white/60" />
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
       </header>
 
-      {/* Features */}
-      <section className="max-w-7xl mx-auto px-6 py-20">
-        <div className="text-center mb-14">
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            How It Works
-          </h3>
-          <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-            Three simple steps to accelerate your career journey
+      {/* How it works */}
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mb-14 max-w-2xl">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">How it works</h2>
+          <p className="mt-3 text-muted-foreground">
+            Three steps to move your job search or grad-school application forward.
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              step: "01",
-              icon: (
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              ),
-              title: "Upload Your CV",
-              desc: "Drop your CV in PDF or DOCX. Our AI extracts and structures your experience, skills, and qualifications in seconds.",
-            },
-            {
-              step: "02",
-              icon: (
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              ),
-              title: "Get Matched",
-              desc: "Hybrid keyword + semantic vector search finds the best industry jobs and academic positions tailored to you.",
-            },
-            {
-              step: "03",
-              icon: (
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              ),
-              title: "Generate Documents",
-              desc: "Get tailored SOPs, cover letters, and detailed skill gap analysis — ready to submit in minutes, not days.",
-            },
-          ].map((item) => (
-            <div
-              key={item.step}
-              className="relative group rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-900 transition-all"
-            >
-              <div className="absolute -top-3 left-6 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-md">
-                Step {item.step}
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {steps.map(({ step, icon: Icon, title, desc }) => (
+            <div key={step} className="group relative rounded-2xl border border-border bg-card p-8 card-hover">
+              <span className="font-mono text-sm font-semibold text-primary/60 tabular-nums">{step}</span>
+              <div className="mt-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon size={22} strokeWidth={1.75} />
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-5">
-                {item.icon}
-              </div>
-              <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                {item.title}
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
-                {item.desc}
-              </p>
+              <h3 className="mt-5 text-lg font-semibold text-foreground">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Everything you need */}
-      <section className="bg-gray-50 dark:bg-gray-900/40 border-y border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-20">
-          <div className="text-center mb-14">
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      {/* Features */}
+      <section className="border-y border-border bg-muted/40">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="mb-14 max-w-2xl">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
               Everything you need — for jobs and higher study
-            </h3>
-            <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Whether you&apos;re chasing a role or a research position, Career Ladder covers the whole journey.
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Whether you&apos;re chasing a role or a research position, Career Ladder covers the
+              whole journey.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                title: "Smart Fit Score",
-                desc: "See how well your CV matches each job or academic position, with the exact keywords you're missing.",
-                tone: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40",
-              },
-              {
-                title: "SOPs, Cover & Recommendation Letters",
-                desc: "Generate tailored documents with a built-in quality self-audit that flags generic phrasing.",
-                tone: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40",
-              },
-              {
-                title: "Scholarship Finder",
-                desc: "Discover real, current funding and scholarships matched to your profile via live AI research.",
-                tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40",
-              },
-              {
-                title: "Professor Outreach",
-                desc: "Draft personalized emails to supervisors that reference their research — and track your pipeline.",
-                tone: "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40",
-              },
-              {
-                title: "Interview Prep",
-                desc: "Practice tailored questions with suggested talking points grounded in your own CV.",
-                tone: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40",
-              },
-              {
-                title: "ATS-safe CV Builder",
-                desc: "Build an enhanced CV and export a clean, single-column version any recruiter system can read.",
-                tone: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40",
-              },
-            ].map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all"
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${f.tone}`}>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-                  </svg>
+
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            {features.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="bg-card p-7 transition-colors hover:bg-muted/60">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon size={20} strokeWidth={1.75} />
                 </div>
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">{f.title}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">{f.desc}</p>
+                <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="border-y border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: "10K+", label: "Positions Indexed" },
-            { value: "< 5s", label: "Average Match Time" },
-            { value: "98%", label: "Parse Accuracy" },
-            { value: "24/7", label: "AI Availability" },
-          ].map((stat) => (
+      {/* Stats */}
+      <section className="border-b border-border">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-14 text-center md:grid-cols-4">
+          {stats.map((stat) => (
             <div key={stat.label}>
-              <div className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {stat.value}
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {stat.label}
-              </div>
+              <div className="text-3xl font-bold tracking-tight text-foreground tabular-nums">{stat.value}</div>
+              <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -209,11 +208,9 @@ export default function HomePage() {
 
       {/* Pricing */}
       <section id="pricing" className="px-6 py-20">
-        <div className="text-center mb-14">
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Simple, Transparent Pricing
-          </h3>
-          <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
+        <div className="mb-14 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Simple, transparent pricing</h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
             Start free. Upgrade when you need more power.
           </p>
         </div>
@@ -221,37 +218,42 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-blue-900 dark:to-indigo-950">
-        <div className="max-w-4xl mx-auto px-6 py-16 text-center text-white">
-          <h3 className="text-2xl md:text-3xl font-bold">
-            Ready to land your dream role?
-          </h3>
-          <p className="mt-3 text-blue-100/90 max-w-lg mx-auto">
-            Join thousands of professionals using AI to fast-track your career.
+      <section className="relative overflow-hidden bg-[radial-gradient(120%_140%_at_50%_0%,#3a56d4_0%,#2f45ac_55%,#1e2a66_100%)] dark:bg-[radial-gradient(120%_140%_at_50%_0%,#1e2a66_0%,#131a3f_60%,#0a0e1a_100%)]">
+        <div className="relative mx-auto max-w-4xl px-6 py-16 text-center text-white">
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Ready to move your career forward?
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-white/80">
+            Upload your CV and get matched roles, positions, and tailored documents in minutes.
           </p>
           <Link
-            href="/login"
-            className="inline-flex items-center mt-8 bg-white text-indigo-700 px-8 py-3.5 rounded-xl font-semibold hover:bg-gray-50 transition-all shadow-xl"
+            href="/login?callbackUrl=%2Fdashboard%2Fupload"
+            className="group mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 font-semibold text-primary shadow-xl shadow-black/20 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
-            Get Started Free
+            Upload your CV
+            <ArrowRight
+              size={18}
+              strokeWidth={2.25}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center gap-2">
               <Logo size={28} />
-              <span className="font-semibold text-gray-900 dark:text-gray-100">Career Ladder</span>
+              <span className="font-semibold text-foreground">Career Ladder</span>
             </div>
-            <div className="flex gap-6 text-sm text-gray-500 dark:text-gray-400">
-              <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Terms</Link>
-              <Link href="/support" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">Support</Link>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <nav className="flex gap-6 text-sm text-muted-foreground">
+              <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy</Link>
+              <Link href="/terms" className="transition-colors hover:text-foreground">Terms</Link>
+              <Link href="/support" className="transition-colors hover:text-foreground">Support</Link>
+            </nav>
+            <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} Career Ladder. All rights reserved.
             </p>
           </div>

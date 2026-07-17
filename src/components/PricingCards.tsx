@@ -92,7 +92,7 @@ export function PricingCards() {
           name: session?.user?.name || undefined,
           email: session?.user?.email || undefined,
         },
-        theme: { color: "#2563eb" },
+        theme: { color: "#3a56d4" },
         modal: { ondismiss: () => setBusyTier(null) },
         handler: async (response) => {
           try {
