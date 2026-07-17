@@ -48,6 +48,9 @@ snowflake.log
 .agents/
 .claude/
 skills-lock.json
+
+# local build artifacts
+build-out.txt
 dev-server*.log
 prod-server.log
 prod-server.err.log
