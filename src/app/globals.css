@@ -5,18 +5,19 @@
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
-  --primary: #2563eb;
+  /* Single considered accent (desaturated cobalt) — replaces the blue/indigo/purple mix */
+  --primary: #3a56d4;
   --primary-foreground: #ffffff;
-  --primary-hover: #1d4ed8;
-  --secondary: #6366f1;
+  --primary-hover: #2f45ac;
+  --secondary: #334155;
   --secondary-foreground: #ffffff;
-  --accent: #8b5cf6;
+  --accent: #5a6fd6;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
-  --ring: #2563eb;
+  --ring: #3a56d4;
   --success: #10b981;
   --warning: #f59e0b;
   --destructive: #ef4444;
@@ -25,18 +26,18 @@
 .dark {
   --background: #030712;
   --foreground: #f1f5f9;
-  --primary: #3b82f6;
+  --primary: #6d84f5;
   --primary-foreground: #ffffff;
-  --primary-hover: #60a5fa;
-  --secondary: #818cf8;
-  --secondary-foreground: #ffffff;
-  --accent: #a78bfa;
+  --primary-hover: #8598ff;
+  --secondary: #475569;
+  --secondary-foreground: #f1f5f9;
+  --accent: #8ea3f7;
   --muted: #111827;
   --muted-foreground: #94a3b8;
   --card: #0f172a;
   --card-foreground: #f1f5f9;
   --border: #1e293b;
-  --ring: #3b82f6;
+  --ring: #6d84f5;
   --success: #34d399;
   --warning: #fbbf24;
   --destructive: #f87171;
@@ -63,9 +64,43 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Remap Tailwind's raw `blue` ramp onto the single accent so hardcoded
+   `bg-blue-600` / `text-blue-600` CTAs stay on-brand without editing every file. */
+@theme {
+  --color-blue-50: #eef1fb;
+  --color-blue-100: #dde3f8;
+  --color-blue-500: #4f68d9;
+  --color-blue-600: #3a56d4;
+  --color-blue-700: #2f45ac;
+  --color-blue-800: #26379a;
+  --color-blue-900: #1e2a66;
+  --color-blue-950: #131a3f;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Visible keyboard focus (accessibility) */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Headings: heavier presence, tighter tracking, no orphans */
+h1, h2, h3 {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Tabular figures for data-heavy readouts */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Smooth theme transitions */
@@ -75,16 +110,18 @@ body {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Card hover lift */
+/* Card hover lift — shadow tinted with the accent hue instead of flat black */
 .card-hover {
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.1), 0 4px 10px -6px rgb(0 0 0 / 0.1);
+  box-shadow: 0 10px 30px -8px color-mix(in srgb, var(--primary) 22%, transparent),
+    0 4px 10px -6px rgb(15 23 42 / 0.12);
 }
 .dark .card-hover:hover {
-  box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.4), 0 4px 10px -6px rgb(0 0 0 / 0.3);
+  box-shadow: 0 12px 34px -8px color-mix(in srgb, var(--primary) 28%, transparent),
+    0 4px 12px -6px rgb(0 0 0 / 0.5);
 }
 
 /* Skeleton loading animation */

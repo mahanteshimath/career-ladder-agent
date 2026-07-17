@@ -43,6 +43,9 @@ next-env.d.ts
 
 # logs
 snowflake.log
+
+# agent skills (installed via `skills add`, not part of the app)
+.agents/
 dev-server*.log
 prod-server.log
 prod-server.err.log
