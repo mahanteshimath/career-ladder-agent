@@ -51,6 +51,7 @@ export default function MatchesPage() {
   const [detailItem, setDetailItem] = useState<JobItem | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -60,7 +61,14 @@ export default function MatchesPage() {
         if (data.success) {
           const list: CvItem[] = data.data || [];
           setCvs(list);
-          if (list.length > 0) setSelectedCvId(list[0].ID);
+          const paramCv = new URLSearchParams(window.location.search).get("cv");
+          const preselect = paramCv && list.some((c) => c.ID === paramCv) ? paramCv : "";
+          if (preselect) {
+            setSelectedCvId(preselect);
+            findLiveJobs(preselect);
+          } else if (list.length > 0) {
+            setSelectedCvId(list[0].ID);
+          }
         }
       } catch {
         // ignore — empty state handles no CVs
@@ -68,10 +76,12 @@ export default function MatchesPage() {
         setCvLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const findLiveJobs = async () => {
-    if (!selectedCvId) return;
+  const findLiveJobs = async (cvIdArg?: string) => {
+    const cvId = cvIdArg || selectedCvId;
+    if (!cvId) return;
     setLiveLoading(true);
     setLiveError(null);
     setLiveJobs([]);
@@ -81,7 +91,7 @@ export default function MatchesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cvId: selectedCvId,
+          cvId,
           targetType: "job",
           customInstructions: extraInfo.trim() || undefined,
         }),
@@ -126,6 +136,7 @@ export default function MatchesPage() {
   const saveToTracker = async (job: JobItem) => {
     if (savedIds.has(job.id) || savingId) return;
     setSavingId(job.id);
+    setSaveError(null);
     try {
       const res = await fetch("/api/tracker", {
         method: "POST",
@@ -146,9 +157,11 @@ export default function MatchesPage() {
       const data = await res.json();
       if (data.success) {
         setSavedIds((prev) => new Set(prev).add(job.id));
+      } else {
+        setSaveError(data.error?.message || "Couldn't save to tracker. Please try again.");
       }
     } catch {
-      /* silently ignore — user can retry */
+      setSaveError("Network error while saving to tracker. Please try again.");
     } finally {
       setSavingId(null);
     }
@@ -253,7 +266,7 @@ export default function MatchesPage() {
 
             {/* Search button */}
             <button
-              onClick={findLiveJobs}
+              onClick={() => findLiveJobs()}
               disabled={liveLoading || !selectedCvId}
               className="mt-4 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -304,9 +317,17 @@ export default function MatchesPage() {
                     match={job}
                     userTier="premium"
                     onViewDetails={openDetail}
+                    onSave={() => saveToTracker(job)}
+                    saved={savedIds.has(job.id)}
+                    saving={savingId === job.id}
                   />
                 ))}
               </div>
+              {saveError && (
+                <div className="mt-4 p-3 rounded-lg text-sm bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                  {saveError}
+                </div>
+              )}
             </div>
           )}
 

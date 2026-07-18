@@ -83,28 +83,14 @@ export default function UploadPage() {
     }
   };
 
-  const handleFindMatches = async (targetType: "job" | "position", cvId?: string) => {
+  const handleFindMatches = (targetType: "job" | "position", cvId?: string) => {
     const id = cvId || uploadResult?.id;
     if (!id) return;
     setTriggering(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cvId: id, targetType }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        router.push("/dashboard/matches");
-      } else {
-        setError(data.error || "Matching failed. Try again from the Matches page.");
-        setTriggering(false);
-      }
-    } catch {
-      setError("Network error during matching.");
-      setTriggering(false);
+    if (targetType === "position") {
+      router.push("/dashboard/positions");
+    } else {
+      router.push(`/dashboard/matches?cv=${id}`);
     }
   };
 

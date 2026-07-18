@@ -1,5 +1,6 @@
 "use client";
 
+import { Bookmark, Check, Loader2 } from "lucide-react";
 import type { TierName } from "@/types";
 
 interface MatchResult {
@@ -19,9 +20,20 @@ interface JobCardProps {
   userTier: TierName;
   onViewDetails?: (id: string) => void;
   onGenerateSop?: (id: string) => void;
+  onSave?: () => void;
+  saved?: boolean;
+  saving?: boolean;
 }
 
-export function JobCard({ match, userTier, onViewDetails, onGenerateSop }: JobCardProps) {
+export function JobCard({
+  match,
+  userTier,
+  onViewDetails,
+  onGenerateSop,
+  onSave,
+  saved,
+  saving,
+}: JobCardProps) {
   const scoreColor =
     match.score >= 0.8
       ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
@@ -84,6 +96,23 @@ export function JobCard({ match, userTier, onViewDetails, onGenerateSop }: JobCa
             className="text-sm px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary-hover transition-colors"
           >
             Generate SOP
+          </button>
+        )}
+        {onSave && (
+          <button
+            onClick={onSave}
+            disabled={saved || saving}
+            className="text-sm px-3 py-1 border border-border rounded hover:bg-muted transition-colors text-foreground inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-default"
+            title={saved ? "Saved to Tracker" : "Save to Tracker"}
+          >
+            {saving ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : saved ? (
+              <Check size={13} className="text-emerald-500" />
+            ) : (
+              <Bookmark size={13} />
+            )}
+            {saved ? "Saved" : "Save"}
           </button>
         )}
         {match.sourceUrl && (
