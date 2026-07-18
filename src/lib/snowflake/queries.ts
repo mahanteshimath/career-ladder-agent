@@ -148,11 +148,58 @@ export interface TrackerItemInput {
  * exists — dedup is enforced by DEDUP_HASH. Returns true if a row was added.
  */
 export async function addTrackerItem(data: TrackerItemInput): Promise<boolean> {
-  const result = await executeQuery(
+  try {
+    return await insertTrackerItem(data);
+  } catch (err) {
+    // Self-heal: the CL_TRACKER table is a separate migration that may not have
+    // been run in this environment. Create it on the fly, then retry once.
+    if (/does not exist|not authorized/i.test((err as Error)?.message || "")) {
+      await ensureTrackerTable();
+      return await insertTrackerItem(data);
+    }
+    throw err;
+  }
+}
+
+const CREATE_TRACKER_TABLE = `CREATE TABLE IF NOT EXISTS CL_TRACKER (
+  ID VARCHAR(36) DEFAULT UUID_STRING() NOT NULL,
+  USER_ID VARCHAR(36) NOT NULL,
+  JOURNEY VARCHAR(20) NOT NULL,
+  STAGE VARCHAR(30) NOT NULL DEFAULT 'saved',
+  TITLE VARCHAR(512) NOT NULL,
+  ORGANIZATION VARCHAR(512),
+  LOCATION VARCHAR(256),
+  URL VARCHAR(2048),
+  DEADLINE DATE,
+  SOURCE_TYPE VARCHAR(20),
+  SOURCE_ID VARCHAR(36),
+  DEDUP_HASH VARCHAR(64),
+  NOTES TEXT,
+  METADATA VARIANT,
+  CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+  UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+  PRIMARY KEY (ID),
+  UNIQUE (DEDUP_HASH)
+)`;
+
+async function ensureTrackerTable(): Promise<void> {
+  await executeQuery(CREATE_TRACKER_TABLE, []);
+}
+
+async function insertTrackerItem(data: TrackerItemInput): Promise<boolean> {
+  // Dedup check first — the previous INSERT ... SELECT ... WHERE NOT EXISTS
+  // relied on a FROM-less SELECT with a WHERE clause, which Snowflake rejects.
+  const existing = await executeQuery(
+    `SELECT 1 FROM CL_TRACKER WHERE DEDUP_HASH = ? LIMIT 1`,
+    [data.dedupHash]
+  );
+  if (existing.rows.length > 0) return false;
+
+  // PARSE_JSON isn't allowed in a VALUES list, so use INSERT ... SELECT (no FROM needed).
+  await executeQuery(
     `INSERT INTO CL_TRACKER
        (USER_ID, JOURNEY, STAGE, TITLE, ORGANIZATION, LOCATION, URL, DEADLINE, SOURCE_TYPE, SOURCE_ID, DEDUP_HASH, NOTES, METADATA)
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, PARSE_JSON(?)
-     WHERE NOT EXISTS (SELECT 1 FROM CL_TRACKER WHERE DEDUP_HASH = ?)`,
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, PARSE_JSON(?)`,
     [
       data.userId,
       data.journey,
@@ -167,14 +214,9 @@ export async function addTrackerItem(data: TrackerItemInput): Promise<boolean> {
       data.dedupHash,
       data.notes || null,
       JSON.stringify(data.metadata || {}),
-      data.dedupHash,
     ]
   );
-  // Snowflake DML returns a summary row like { 'number of rows inserted': N }.
-  const row = result.rows[0] as Record<string, unknown> | undefined;
-  if (!row) return true;
-  const inserted = Object.values(row)[0];
-  return typeof inserted === "number" ? inserted > 0 : true;
+  return true;
 }
 
 export async function getTrackerItems(userId: string, journey?: "job" | "academic") {

@@ -81,6 +81,12 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ added });
   } catch (err) {
     console.error("Tracker add error:", err);
+    const message = (err as Error)?.message || "";
+    if (/does not exist|not authorized|CL_TRACKER/i.test(message)) {
+      return serverError(
+        "Tracker storage isn't set up yet. Run `node scripts/add-tracker-table.js` to create the CL_TRACKER table."
+      );
+    }
     return serverError();
   }
 }
