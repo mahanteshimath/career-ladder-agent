@@ -23,6 +23,7 @@ const ResearchSchema = z.object({
   positionType: z.string().optional(), // "phd" | "postdoc" | "masters" | "research_assistant"
   continent: z.string().optional(),
   customInstructions: z.string().max(500).optional(),
+  forceFresh: z.boolean().optional(), // bypass the research cache and re-verify links
 });
 
 export async function POST(request: NextRequest) {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { cvId, targetType, positionType, continent, customInstructions } = parsed.data;
+  const { cvId, targetType, positionType, continent, customInstructions, forceFresh } = parsed.data;
 
   // Enforce tier-based rate limit — disabled for testing
   // try {
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
       result = await orchestrate({
         task: "research_positions",
         userId,
+        skipCache: forceFresh === true,
         payload: {
           cvSummary,
           positionType: positionType || "PhD",
@@ -105,6 +107,7 @@ export async function POST(request: NextRequest) {
       result = await orchestrate({
         task: "research_jobs",
         userId,
+        skipCache: forceFresh === true,
         payload: {
           cvSummary,
           customInstructions: customInstructions || "",

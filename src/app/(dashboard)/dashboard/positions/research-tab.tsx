@@ -54,6 +54,7 @@ export function ResearchTab({ targetType, onResultsPersisted }: Props) {
   const [positionType, setPositionType] = useState("PhD");
   const [continent, setContinent] = useState("All");
   const [customInstructions, setCustomInstructions] = useState("");
+  const [forceFresh, setForceFresh] = useState(false);
   const [results, setResults] = useState<ResearchedItem[]>([]);
   const [citations, setCitations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,7 +110,7 @@ export function ResearchTab({ targetType, onResultsPersisted }: Props) {
     setMeta(null);
 
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | boolean> = {
         cvId: selectedCv,
         targetType,
       };
@@ -119,6 +120,9 @@ export function ResearchTab({ targetType, onResultsPersisted }: Props) {
       }
       if (customInstructions.trim()) {
         body.customInstructions = customInstructions.trim();
+      }
+      if (forceFresh) {
+        body.forceFresh = true;
       }
 
       const res = await fetch("/api/research", {
@@ -262,6 +266,19 @@ export function ResearchTab({ targetType, onResultsPersisted }: Props) {
         >
           {loading ? "Researching... (up to 90s)" : "🔍 Start AI Research"}
         </button>
+
+        <label className="mt-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={forceFresh}
+            onChange={(e) => setForceFresh(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-700 text-purple-600 focus:ring-purple-500"
+          />
+          Force fresh search
+          <span className="text-gray-400 dark:text-gray-500">
+            (skip cached results and re-verify links — slower)
+          </span>
+        </label>
 
         {error && (
           <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
