@@ -40,7 +40,9 @@ Return ONLY valid JSON with this structure:
 
 Rules:
 - Generate 8-12 questions across a mix of categories.
-- Ground suggestedPoints in the candidate's actual background. Do NOT invent achievements, publications, or employers.
+- If APPLICATION MATERIALS are provided (the exact posting/program and the document the candidate actually submitted), tailor questions to THAT specific posting and probe the claims and gaps in what they wrote — not generic questions.
+- Ground suggestedPoints in the candidate's actual background. Frame them as STAR cues (Situation → Task → Action → Result) drawn from real experience. Do NOT invent achievements, publications, or employers.
+- For a requirement the candidate does not clearly meet, include an honest "bridge" talking point that frames adjacent experience — never fabricate the missing skill.
 - Keep everything concise and practical.
 - Return ONLY the JSON object, no markdown or explanation.`;
 }

@@ -397,6 +397,15 @@ export async function getUserDrafts(userId: string) {
   return result.rows;
 }
 
+export async function getDraftById(id: string, userId: string) {
+  const result = await executeQuery(
+    `SELECT ID, TYPE, CONTENT, CONTEXT, CREATED_AT
+     FROM CL_DRAFTS WHERE ID = ? AND USER_ID = ? LIMIT 1`,
+    [id, userId]
+  );
+  return (result.rows?.[0] as Record<string, unknown> | undefined) ?? null;
+}
+
 // ============================================================
 // CACHE QUERIES
 // ============================================================

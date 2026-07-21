@@ -7,13 +7,14 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { orchestrate } from "@/lib/agents/orchestrator";
-import { getCvById, getUserCvs } from "@/lib/snowflake/queries";
+import { getCvById, getDraftById, getUserCvs } from "@/lib/snowflake/queries";
 import { cvParser } from "@/lib/agents/cv-parser";
 import { isPerplexityConfigured } from "@/lib/perplexity/config";
 import { getAuthenticatedUser, badRequest, serverError, apiError } from "@/lib/api-response";
 
 const InterviewSchema = z.object({
   cvId: z.string().uuid().optional(),
+  draftId: z.string().uuid().optional(),
   targetContext: z.string().max(2000).optional(),
   journey: z.enum(["job", "academic"]).default("job"),
 });
@@ -26,6 +27,39 @@ async function buildCvSummary(userId: string, cvId?: string): Promise<string | n
   if (!parsedJson) return null;
   const parsed = typeof parsedJson === "string" ? JSON.parse(parsedJson) : parsedJson;
   return cvParser.buildSummary(cvParser.normalize(parsed as Record<string, unknown>));
+}
+
+/**
+ * Ground interview prep in the candidate's actual application: pull the saved
+ * draft's target context + the document they submitted, so questions probe what
+ * the interviewer actually read. Returns "" if no/unknown draft.
+ */
+async function buildApplicationContext(userId: string, draftId?: string): Promise<string> {
+  if (!draftId) return "";
+  const draft = await getDraftById(draftId, userId).catch(() => null);
+  if (!draft) return "";
+
+  const rawContext = draft.CONTEXT;
+  let contextText = "";
+  try {
+    const ctx = typeof rawContext === "string" ? JSON.parse(rawContext) : rawContext;
+    contextText = ctx
+      ? Object.values(ctx as Record<string, unknown>)
+          .map((v) => (typeof v === "string" ? v : ""))
+          .filter(Boolean)
+          .join("\n")
+      : "";
+  } catch {
+    contextText = typeof rawContext === "string" ? rawContext : "";
+  }
+
+  const type = String(draft.TYPE ?? "document");
+  const content = String(draft.CONTENT ?? "").slice(0, 4000);
+
+  const parts = ["APPLICATION MATERIALS (ground questions in these):"];
+  if (contextText.trim()) parts.push(`Target posting/program:\n${contextText.slice(0, 3000)}`);
+  if (content.trim()) parts.push(`Document the candidate submitted (${type}):\n${content}`);
+  return parts.length > 1 ? parts.join("\n\n") : "";
 }
 
 export async function POST(request: NextRequest) {
@@ -53,13 +87,19 @@ export async function POST(request: NextRequest) {
     return badRequest("Upload a CV first to generate a personalized interview prep.");
   }
 
+  // Ground prep in the actual application when a saved draft is referenced.
+  const applicationContext = await buildApplicationContext(userId, parsed.data.draftId);
+  const targetContext = [applicationContext, parsed.data.targetContext?.trim() || ""]
+    .filter(Boolean)
+    .join("\n\n");
+
   try {
     const result = await orchestrate({
       task: "interview_prep",
       userId,
       payload: {
         cvSummary,
-        targetContext: parsed.data.targetContext || "",
+        targetContext,
         journey: parsed.data.journey,
       },
     });

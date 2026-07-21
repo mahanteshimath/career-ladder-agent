@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface InterviewQuestion {
   question: string;
@@ -27,6 +27,27 @@ export default function InterviewPage() {
   const [error, setError] = useState("");
   const [prep, setPrep] = useState<InterviewPrep | null>(null);
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const [drafts, setDrafts] = useState<{ id: string; type: string; createdAt?: string }[]>([]);
+  const [draftId, setDraftId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/drafts")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          setDrafts(
+            d.data
+              .filter((x: { type: string }) => x.type === "sop" || x.type === "cover_letter")
+              .map((x: { id: string; type: string; createdAt?: string }) => ({
+                id: x.id,
+                type: x.type,
+                createdAt: x.createdAt,
+              }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleGenerate() {
     setLoading(true);
@@ -37,7 +58,7 @@ export default function InterviewPage() {
       const res = await fetch("/api/interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ journey, targetContext: targetContext || undefined }),
+        body: JSON.stringify({ journey, targetContext: targetContext || undefined, draftId: draftId || undefined }),
       });
       const data = await res.json();
       if (data.success) {
@@ -86,6 +107,29 @@ export default function InterviewPage() {
             </button>
           ))}
         </div>
+        {drafts.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Ground in a saved application (optional)
+            </label>
+            <select
+              value={draftId}
+              onChange={(e) => setDraftId(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-gray-100"
+            >
+              <option value="">— None (use CV + target below) —</option>
+              {drafts.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.type === "sop" ? "SOP" : "Cover letter"}
+                  {d.createdAt ? ` — ${new Date(String(d.createdAt)).toLocaleDateString()}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-gray-400 mt-1">
+              Tailors questions to the exact posting and the document you submitted.
+            </p>
+          </div>
+        )}
         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
           Target role or program (optional)
         </label>
