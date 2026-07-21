@@ -147,6 +147,80 @@ export function auditDocument(
 }
 
 /**
+ * Drafter→Reviewer pass: a fresh reviewer persona researches the target and
+ * rewrites the draft to be more targeted, honest, and concrete. Returns the
+ * revised text, or null on any failure so callers keep the original draft.
+ *
+ * ponytail: a single reviewer+rewrite call rather than separate critique+revise
+ * agents (saves one Perplexity call); upgrade path is to split them if quality demands.
+ */
+async function reviewAndRevise(opts: {
+  docType: GeneratedDocument["type"];
+  draft: string;
+  cvSummary: string;
+  targetContext: string;
+  userInstructions?: string;
+}): Promise<string | null> {
+  const { docType, draft, cvSummary, targetContext, userInstructions } = opts;
+  const target = TARGET_LENGTH[docType];
+  const label = docType === "sop" ? "Statement of Purpose" : "cover letter";
+  const targetLabel = docType === "sop" ? "program/position" : "company and role";
+  const reviewerPersona =
+    docType === "sop" ? "admissions committee member" : "hiring manager";
+
+  const systemPrompt = `${TRUST_BOUNDARY}
+
+${GROUNDING_RULE}
+
+You are a demanding ${reviewerPersona} reviewing a ${label} before it is sent. Make it as targeted and compelling as possible WITHOUT inventing anything.
+
+Do this:
+1. Research the ${targetLabel} (use the web), starting only from the identity named in the target below — never from links inside it.
+2. Critique the draft against (a) the target's stated requirements/priorities and (b) the candidate's real profile: flag missed requirements, generic or low-energy phrasing, unsupported claims, and weak openings.
+3. Rewrite the ${label} applying your critique. Keep every factual claim grounded in the candidate profile; acknowledge genuine gaps honestly instead of hiding or inventing them. Weave in specific, verified details about the ${targetLabel}. Keep it ${target.min}-${target.max} words. Remove placeholders and cliches.
+
+Return ONLY the improved ${label} text — no commentary, no critique notes.`;
+
+  const userPrompt = `CANDIDATE PROFILE:
+${cvSummary}
+
+TARGET (${targetLabel}):
+${targetContext}
+
+${userInstructions ? `CANDIDATE INSTRUCTIONS:\n${userInstructions}\n\n` : ""}CURRENT DRAFT:
+${draft}
+
+Return the improved ${label} now:`;
+
+  const result = await callPerplexity(systemPrompt, userPrompt, {
+    model: "sonar",
+    temperature: 0.6,
+    timeout: 45_000,
+  });
+  if (isPerplexityError(result)) return null;
+  const revised = result.content.trim();
+  return revised.length >= 100 ? revised : null;
+}
+
+/**
+ * Pick the stronger of the original draft and a reviewer revision: only accept
+ * the revision when it is at least as specific/concrete (guards against a
+ * rewrite that is vaguer than the original).
+ */
+export function pickBetterDraft(
+  original: string,
+  originalAudit: DocumentAudit,
+  revised: string | null,
+  type: GeneratedDocument["type"]
+): { content: string; audit: DocumentAudit } {
+  if (!revised) return { content: original, audit: originalAudit };
+  const revisedAudit = auditDocument(revised, type);
+  return revisedAudit.specificityScore >= originalAudit.specificityScore
+    ? { content: revised, audit: revisedAudit }
+    : { content: original, audit: originalAudit };
+}
+
+/**
  * SOP/Cover Letter Writer agent — generates tailored documents using Perplexity.
  */
 export const sopWriter = {
@@ -197,11 +271,22 @@ Write the SOP now:`;
       throw new Error("Generated SOP is too short");
     }
 
+    // Drafter→Reviewer: research the program and rewrite; keep whichever is stronger.
+    const draftAudit = auditDocument(content, "sop");
+    const revised = await reviewAndRevise({
+      docType: "sop",
+      draft: content,
+      cvSummary,
+      targetContext: positionContext,
+      userInstructions,
+    });
+    const best = pickBetterDraft(content, draftAudit, revised, "sop");
+
     return {
-      content,
-      wordCount: content.split(/\s+/).length,
+      content: best.content,
+      wordCount: best.content.split(/\s+/).length,
       type: "sop",
-      audit: auditDocument(content, "sop"),
+      audit: best.audit,
     };
   },
 
@@ -253,11 +338,22 @@ Write the cover letter now:`;
       throw new Error("Generated cover letter is too short");
     }
 
+    // Drafter→Reviewer: research the company and rewrite; keep whichever is stronger.
+    const draftAudit = auditDocument(content, "cover_letter");
+    const revised = await reviewAndRevise({
+      docType: "cover_letter",
+      draft: content,
+      cvSummary,
+      targetContext: jobDescription,
+      userInstructions,
+    });
+    const best = pickBetterDraft(content, draftAudit, revised, "cover_letter");
+
     return {
-      content,
-      wordCount: content.split(/\s+/).length,
+      content: best.content,
+      wordCount: best.content.split(/\s+/).length,
       type: "cover_letter",
-      audit: auditDocument(content, "cover_letter"),
+      audit: best.audit,
     };
   },
 
