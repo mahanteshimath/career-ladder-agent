@@ -6,6 +6,7 @@
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
 import { computeFitScore } from "@/lib/utils/fit-score";
+import { extractSkills } from "@/lib/utils/keyword-coverage";
 import { TRUST_BOUNDARY } from "@/lib/agents/safety";
 import { searchFreehire, filterByLocationHint } from "./freehire-source";
 import {
@@ -136,6 +137,9 @@ async function discoverTargets(
   return { roles, domains: dedupe(domains) };
 }
 
+/** Cap on how many candidate links we reachability-check per search (bounds latency). */
+const MAX_LINKS_TO_VERIFY = 50;
+
 /** Parse a YYYY-MM-DD deadline and return true if it is strictly before `today` (YYYY-MM-DD). */
 export function isDeadlinePassed(deadline: string | undefined, today: string): boolean {
   if (!deadline) return false;
@@ -156,9 +160,17 @@ async function validateAndRankJobs(
 ): Promise<ResearchedJob[]> {
   const cleaned = dedupeAndClean(jobs).filter((j) => j.sourceUrl);
 
+  // Score relevance up front (cheap, no network), then spend the link-verification
+  // budget on the most relevant candidates only — keeps latency bounded when the
+  // merged pool from multiple sources is large.
+  for (const j of cleaned) j.fitScore = computeFitScore(j.requiredSkills, cvSummary);
+  const candidates = cleaned
+    .sort((a, b) => (b.fitScore ?? 0) - (a.fitScore ?? 0))
+    .slice(0, MAX_LINKS_TO_VERIFY);
+
   // Check each apply link's real liveness (not just HTTP reachability).
   const checked = await Promise.all(
-    cleaned.map(async (j) => ({ job: j, status: await verifyJobLink(j.sourceUrl) }))
+    candidates.map(async (j) => ({ job: j, status: await verifyJobLink(j.sourceUrl) }))
   );
 
   // Drop confirmed-dead links and postings whose application deadline has
@@ -169,7 +181,6 @@ async function validateAndRankJobs(
     if (status === "dead") continue;
     if (isDeadlinePassed(job.deadline, today)) continue;
     job.verified = status === "live";
-    job.fitScore = computeFitScore(job.requiredSkills, cvSummary);
     const cls = classifySource(job.sourceUrl);
     if (status === "live" || cls === "ats" || cls === "official") kept.push(job);
   }
@@ -289,23 +300,29 @@ export async function searchJobs(
     .filter(Boolean)
     .join("\n");
 
-  // Phase 2 — three parallel live-jobs sources to widen coverage:
+  // Phase 2 — parallel live-jobs sources to widen coverage:
   //  (A) Perplexity deep search scoped to discovered company career domains,
   //  (B) Perplexity deep search scoped to the top ATS boards,
-  //  (C) freehire.dev structured API (real, indexed postings; best-effort).
-  // Merging all three yields more real, diverse postings than any single pass.
+  //  (C) freehire.dev, queried several ways (each discovered role + the CV's top
+  //      skills) to pull many relevant, real postings. All best-effort.
   const companyFilter = dedupe(domains).slice(0, 10);
   const atsFilter = dedupe([...PREFERRED_ATS_BOARDS, ...domains]).slice(0, 10);
-  const freehireQuery = (roles.slice(0, 2).join(" ") || instructions.split(/[.,\n]/)[0] || "").slice(0, 80);
 
-  const [passA, passB, freehireRaw] = await Promise.all([
+  const skillQuery = extractSkills(cvSummary, 5).join(" ");
+  const freehireQueries = dedupe(
+    [...roles.slice(0, 3), skillQuery, instructions.split(/[.,\n]/)[0] || ""]
+      .map((q) => q.trim())
+      .filter((q) => q.length >= 2)
+  ).slice(0, 4);
+
+  const [passA, passB, freehireResults] = await Promise.all([
     runOneSearch(searchPrompt, companyFilter.length ? companyFilter : atsFilter),
     runOneSearch(searchPrompt, atsFilter),
-    searchFreehire(freehireQuery, { limit: 25, postedWithinDays: 45 }),
+    Promise.all(freehireQueries.map((q) => searchFreehire(q, { limit: 30, postedWithinDays: 45 }))),
   ]);
 
   // Keep only freehire jobs matching the user's requested location (if any).
-  const freehireJobs = filterByLocationHint(freehireRaw, instructions);
+  const freehireJobs = filterByLocationHint(freehireResults.flat(), instructions);
 
   const rawJobs = [...passA.jobs, ...passB.jobs, ...freehireJobs];
   const citations = dedupe([...passA.citations, ...passB.citations]);

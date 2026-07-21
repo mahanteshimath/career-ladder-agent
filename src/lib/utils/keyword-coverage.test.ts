@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { keywordCoverage } from "@/lib/utils/keyword-coverage";
+import { keywordCoverage, extractSkills } from "@/lib/utils/keyword-coverage";
 
 describe("keywordCoverage", () => {
   it("returns empty when either side is missing", () => {
@@ -30,5 +30,18 @@ describe("keywordCoverage", () => {
     expect(cov.jdKeywordCount).toBeGreaterThan(0);
     expect(cov.matched).toHaveLength(0);
     expect(cov.coveragePct).toBe(0);
+  });
+});
+
+describe("extractSkills", () => {
+  it("pulls known skills present in the text, capped", () => {
+    const skills = extractSkills("Experienced in Python, PyTorch, AWS and SQL.", 3);
+    expect(skills.length).toBeLessThanOrEqual(3);
+    expect(skills.some((s) => s.toLowerCase() === "python")).toBe(true);
+  });
+
+  it("returns [] for empty or skill-less text", () => {
+    expect(extractSkills(undefined)).toEqual([]);
+    expect(extractSkills("A poem about the sea.")).toEqual([]);
   });
 });

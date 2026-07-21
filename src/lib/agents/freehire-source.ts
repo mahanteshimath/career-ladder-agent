@@ -91,6 +91,7 @@ const NON_PLACE_TOKENS = new Set([
   "data", "leadership", "role", "roles", "senior", "lead", "remote", "full",
   "time", "engineer", "manager", "director", "scientist", "analyst", "hybrid",
   "onsite", "junior", "mid", "principal", "staff", "team", "work",
+  "job", "jobs", "location", "gen", "general", "position", "opening", "hiring",
 ]);
 
 export function filterByLocationHint(jobs: ResearchedJob[], preferences: string): ResearchedJob[] {

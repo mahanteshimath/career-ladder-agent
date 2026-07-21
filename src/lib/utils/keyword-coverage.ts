@@ -71,3 +71,9 @@ export function keywordCoverage(
     jdKeywordCount: jdKeywords.length,
   };
 }
+
+/** Extract the known skills a CV/text mentions, in taxonomy order (for search steering). */
+export function extractSkills(text: string | undefined, limit = 8): string[] {
+  if (!text) return [];
+  return TAXONOMY_SKILLS.filter((s) => hasTerm(text, s)).slice(0, limit);
+}
