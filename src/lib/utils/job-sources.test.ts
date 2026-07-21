@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  bodyLooksDead,
   classifySource,
   dedupeAndClean,
+  redirectedAway,
   sourceRank,
   toDomain,
 } from "@/lib/utils/job-sources";
@@ -67,5 +69,54 @@ describe("sourceRank", () => {
     const other = { sourceUrl: "https://example.com/blog", verified: false };
     expect(sourceRank(atsVerified)).toBeGreaterThan(sourceRank(officialUnverified));
     expect(sourceRank(officialUnverified)).toBeGreaterThan(sourceRank(other));
+  });
+});
+
+describe("bodyLooksDead", () => {
+  it("detects expired / removed postings", () => {
+    expect(bodyLooksDead("This role is No Longer Accepting Applications.")).toBe(true);
+    expect(bodyLooksDead("The job you are looking for is no longer open.")).toBe(true);
+    expect(bodyLooksDead("404 Not Found")).toBe(true);
+    expect(bodyLooksDead("This position has been filled internally.")).toBe(true);
+  });
+
+  it("leaves real open postings alone", () => {
+    expect(bodyLooksDead("We are hiring a Senior AI Engineer. Apply now!")).toBe(false);
+    expect(bodyLooksDead("")).toBe(false);
+  });
+});
+
+describe("redirectedAway", () => {
+  it("flags a deep job URL that collapsed to the board root", () => {
+    expect(
+      redirectedAway(
+        "https://boards.greenhouse.io/acme/jobs/123",
+        "https://boards.greenhouse.io/acme"
+      )
+    ).toBe(true);
+  });
+
+  it("does not flag a same-URL or same-depth redirect", () => {
+    expect(
+      redirectedAway(
+        "https://jobs.lever.co/acme/abc",
+        "https://jobs.lever.co/acme/abc"
+      )
+    ).toBe(false);
+    expect(
+      redirectedAway(
+        "https://careers.acme.com/job/1",
+        "https://careers.acme.com/job/1?utm=x"
+      )
+    ).toBe(false);
+  });
+
+  it("flags a redirect that lands on an aggregator", () => {
+    expect(
+      redirectedAway(
+        "https://careers.acme.com/job/1",
+        "https://www.linkedin.com/jobs/view/1"
+      )
+    ).toBe(true);
   });
 });

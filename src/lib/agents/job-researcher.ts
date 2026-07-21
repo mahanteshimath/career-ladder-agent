@@ -9,10 +9,10 @@ import {
   classifySource,
   dedupe,
   dedupeAndClean,
-  isReachable,
   PREFERRED_ATS_BOARDS,
   sourceRank,
   toDomain,
+  verifyJobLink,
 } from "@/lib/utils/job-sources";
 
 export interface ResearchedJob {
@@ -133,18 +133,21 @@ async function discoverTargets(
 async function validateAndRankJobs(jobs: ResearchedJob[]): Promise<ResearchedJob[]> {
   const cleaned = dedupeAndClean(jobs).filter((j) => j.sourceUrl);
 
-  await Promise.all(
-    cleaned.map(async (j) => {
-      j.verified = await isReachable(j.sourceUrl);
-    })
+  // Check each apply link's real liveness (not just HTTP reachability).
+  const checked = await Promise.all(
+    cleaned.map(async (j) => ({ job: j, status: await verifyJobLink(j.sourceUrl) }))
   );
 
-  // Keep links that are reachable, or that live on a known ATS / official
-  // careers page (those often block HEAD requests but are still real).
-  const kept = cleaned.filter((j) => {
-    const cls = classifySource(j.sourceUrl);
-    return j.verified || cls === "ats" || cls === "official";
-  });
+  // Drop confirmed-dead links. Keep live ones (green badge), plus links we
+  // couldn't judge that still live on a known ATS / official careers page
+  // (those often block bots but are usually real).
+  const kept: ResearchedJob[] = [];
+  for (const { job, status } of checked) {
+    if (status === "dead") continue;
+    job.verified = status === "live";
+    const cls = classifySource(job.sourceUrl);
+    if (status === "live" || cls === "ats" || cls === "official") kept.push(job);
+  }
 
   const ranked = kept.sort((a, b) => sourceRank(b) - sourceRank(a));
 

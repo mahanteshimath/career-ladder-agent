@@ -161,3 +161,107 @@ export async function isReachable(url: string, timeoutMs = 6000): Promise<boolea
     return false;
   }
 }
+
+/** Liveness of a job posting: live, confirmed-dead, or can't-tell. */
+export type LinkStatus = "live" | "dead" | "unknown";
+
+/**
+ * Phrases that appear on expired / filled / removed job postings.
+ * Specific enough to avoid false positives on real, open descriptions.
+ */
+export const DEAD_POSTING_PATTERNS = [
+  "no longer accepting application",
+  "no longer accepting new application",
+  "we are no longer accepting",
+  "not accepting applications",
+  "no longer available",
+  "no longer open",
+  "position has been filled",
+  "this position is closed",
+  "position is no longer",
+  "role is no longer",
+  "this job is no longer",
+  "job is no longer available",
+  "job posting is closed",
+  "posting has closed",
+  "posting has expired",
+  "job has expired",
+  "requisition is closed",
+  "opportunity is no longer",
+  "vacancy is closed",
+  "job you are looking for", // Greenhouse 404: "The job you are looking for is no longer open."
+  "page not found",
+  "job not found",
+  "404 not found",
+];
+
+/** True if the page body reads like an expired/removed posting. */
+export function bodyLooksDead(text: string): boolean {
+  const t = text.toLowerCase();
+  return DEAD_POSTING_PATTERNS.some((p) => t.includes(p));
+}
+
+function pathDepth(url: string): number {
+  try {
+    return new URL(url).pathname.split("/").filter(Boolean).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * True if a specific job URL was redirected to a generic listing/board root —
+ * a common signal that the posting expired (e.g. Greenhouse/Lever bounce
+ * expired jobs to the company's board root).
+ */
+export function redirectedAway(originalUrl: string, finalUrl: string): boolean {
+  if (!finalUrl || originalUrl === finalUrl) return false;
+  const origHost = hostOf(originalUrl);
+  const finalHost = hostOf(finalUrl);
+  // Different host => treat as away only if it landed on an aggregator/search.
+  if (origHost && finalHost && origHost !== finalHost) {
+    return classifySource(finalUrl) === "aggregator";
+  }
+  // Same host: a deep job URL that collapsed to the board root/listing is stale.
+  return pathDepth(originalUrl) >= 2 && pathDepth(finalUrl) <= 1;
+}
+
+/**
+ * Verify a job link is a LIVE posting (not just HTTP-reachable):
+ *  - "dead": 404/410, redirected to a generic board, or body says it's closed
+ *  - "live": 2xx and body has no dead-posting signals
+ *  - "unknown": blocked (401/403), server error, or fetch failed — can't tell
+ *
+ * ponytail: no headless browser, so client-rendered SPA ATS pages (e.g. some
+ * Workday postings) that render "unavailable" via JS can't be detected here;
+ * upgrade path is a headless fetch if false-positives remain a problem.
+ */
+export async function verifyJobLink(url: string, timeoutMs = 8000): Promise<LinkStatus> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      },
+    });
+
+    if (res.status === 404 || res.status === 410) return "dead";
+    // Auth-gated / rate-limited / server errors — can't judge; don't drop.
+    if (res.status < 200 || res.status >= 400) return "unknown";
+
+    if (redirectedAway(url, res.url || url)) return "dead";
+
+    const body = (await res.text()).slice(0, 80_000);
+    if (bodyLooksDead(body)) return "dead";
+    return "live";
+  } catch {
+    return "unknown";
+  } finally {
+    clearTimeout(timer);
+  }
+}
