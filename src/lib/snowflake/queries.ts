@@ -505,10 +505,23 @@ export async function submitIssue(data: {
   description: string;
   attachment?: string | null;
 }) {
-  await executeQuery(
-    `INSERT INTO CL_ISSUES (USER_ID, CATEGORY, DESCRIPTION, ATTACHMENT) VALUES (?, ?, ?, ?)`,
-    [data.userId || null, data.category, data.description, data.attachment || null]
-  );
+  const binds = [data.userId || null, data.category, data.description, data.attachment || null];
+  const insert = `INSERT INTO CL_ISSUES (USER_ID, CATEGORY, DESCRIPTION, ATTACHMENT) VALUES (?, ?, ?, ?)`;
+  try {
+    await executeQuery(insert, binds);
+  } catch (err) {
+    // Older CL_ISSUES tables (created before the ATTACHMENT column existed) are
+    // missing it, so the INSERT fails with "invalid identifier 'ATTACHMENT'".
+    // Add the column idempotently and retry once — self-heals live databases
+    // that were bootstrapped from an earlier schema.
+    const msg = (err as Error)?.message || "";
+    if (/invalid identifier/i.test(msg) && /attachment/i.test(msg)) {
+      await executeQuery(`ALTER TABLE CL_ISSUES ADD COLUMN IF NOT EXISTS ATTACHMENT TEXT`);
+      await executeQuery(insert, binds);
+      return;
+    }
+    throw err;
+  }
 }
 
 export async function getUserIssues(userId: string) {

@@ -201,6 +201,9 @@ CREATE TABLE IF NOT EXISTS CL_ISSUES (
   PRIMARY KEY (ID)
 );
 
+-- Backfill the ATTACHMENT column on databases whose CL_ISSUES predates it.
+ALTER TABLE CL_ISSUES ADD COLUMN IF NOT EXISTS ATTACHMENT TEXT;
+
 -- ============================================================
 -- TABLE: CL_TRACKER (Journey-aware application / program tracker)
 -- ============================================================
