@@ -118,12 +118,14 @@ export async function upsertJobs(jobs: JobUpsert[]): Promise<number> {
         ? job.requiredSkills.join(", ")
         : "";
 
-      // Insert without embedding first (guaranteed to work)
+      // Insert without embedding first (guaranteed to work).
+      // KEYWORDS is an ARRAY column: SPLIT turns the joined skills string into an
+      // array (a bind inside ARRAY_CONSTRUCT(?) is rejected by Snowflake).
       await executeQuery(
         `INSERT INTO CL_JOBS 
          (TITLE, COMPANY, LOCATION, DESCRIPTION, KEYWORDS, 
           SALARY_RANGE, SOURCE)
-         VALUES (?, ?, ?, ?, ARRAY_CONSTRUCT(?), ?, ?)`,
+         SELECT ?, ?, ?, ?, SPLIT(?, ', '), ?, ?`,
         [
           job.title,
           job.company,
