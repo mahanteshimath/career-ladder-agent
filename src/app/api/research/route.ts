@@ -4,7 +4,7 @@
  * Rate-limited by tier (Free: disabled, Basic: 3/week, Premium: 20/month).
  */
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 import { NextRequest } from "next/server";
 import { z } from "zod";

@@ -33,6 +33,8 @@ interface CallOptions {
   model?: string;
   temperature?: number;
   webSearchOptions?: { search_context_size: string };
+  /** Restrict/prefer web search to these domains (max 10; prefix with '-' to exclude). */
+  searchDomainFilter?: string[];
   timeout?: number;
   maxRetries?: number;
 }
@@ -72,6 +74,11 @@ export async function callPerplexity(
 
   if (options.webSearchOptions) {
     payload.web_search_options = options.webSearchOptions;
+  }
+
+  if (options.searchDomainFilter && options.searchDomainFilter.length > 0) {
+    // Perplexity accepts up to 10 domains in the search filter.
+    payload.search_domain_filter = options.searchDomainFilter.slice(0, 10);
   }
 
   let lastError = "";

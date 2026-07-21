@@ -29,6 +29,7 @@ interface JobItem {
   requiredSkills?: string[];
   salaryRange?: string;
   live?: boolean;
+  verified?: boolean;
 }
 
 interface CvItem {
@@ -111,6 +112,7 @@ export default function MatchesPage() {
           requiredSkills: (j.requiredSkills as string[]) || undefined,
           salaryRange: (j.salaryRange as string) || undefined,
           live: true,
+          verified: Boolean(j.verified),
         }));
         setLiveJobs(items);
         if (items.length === 0) {

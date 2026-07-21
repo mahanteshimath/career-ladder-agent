@@ -1,6 +1,5 @@
 "use client";
 
-import { Bookmark, Check, Loader2 } from "lucide-react";
 import type { TierName } from "@/types";
 
 interface MatchResult {
@@ -13,6 +12,7 @@ interface MatchResult {
   description?: string;
   sourceUrl?: string;
   live?: boolean;
+  verified?: boolean;
 }
 
 interface JobCardProps {
@@ -25,15 +25,7 @@ interface JobCardProps {
   saving?: boolean;
 }
 
-export function JobCard({
-  match,
-  userTier,
-  onViewDetails,
-  onGenerateSop,
-  onSave,
-  saved,
-  saving,
-}: JobCardProps) {
+export function JobCard({ match, userTier, onViewDetails, onGenerateSop, onSave, saved, saving }: JobCardProps) {
   const scoreColor =
     match.score >= 0.8
       ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
@@ -59,9 +51,16 @@ export function JobCard({
         </div>
         <div className="flex flex-col items-end gap-1 ml-3">
           {match.live ? (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-              Live
-            </span>
+            <>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                Live
+              </span>
+              {match.verified && (
+                <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-300">
+                  ✓ Verified link
+                </span>
+              )}
+            </>
           ) : (
             <>
               <span className={`text-sm font-bold px-2 py-0.5 rounded ${scoreColor}`}>
@@ -90,29 +89,25 @@ export function JobCard({
         >
           View Details
         </button>
+        {onSave && (
+          <button
+            onClick={onSave}
+            disabled={saved || saving}
+            className={`text-sm px-3 py-1 rounded border transition-colors disabled:opacity-70 ${
+              saved
+                ? "border-green-300 dark:border-green-800 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 cursor-default"
+                : "border-border text-foreground hover:bg-muted"
+            }`}
+          >
+            {saved ? "✓ Saved" : saving ? "Saving..." : "Save"}
+          </button>
+        )}
         {onGenerateSop && (
           <button
             onClick={() => onGenerateSop(match.id)}
             className="text-sm px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary-hover transition-colors"
           >
             Generate SOP
-          </button>
-        )}
-        {onSave && (
-          <button
-            onClick={onSave}
-            disabled={saved || saving}
-            className="text-sm px-3 py-1 border border-border rounded hover:bg-muted transition-colors text-foreground inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-default"
-            title={saved ? "Saved to Tracker" : "Save to Tracker"}
-          >
-            {saving ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : saved ? (
-              <Check size={13} className="text-emerald-500" />
-            ) : (
-              <Bookmark size={13} />
-            )}
-            {saved ? "Saved" : "Save"}
           </button>
         )}
         {match.sourceUrl && (

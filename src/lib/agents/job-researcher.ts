@@ -5,6 +5,15 @@
 
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
+import {
+  classifySource,
+  dedupe,
+  dedupeAndClean,
+  isReachable,
+  PREFERRED_ATS_BOARDS,
+  sourceRank,
+  toDomain,
+} from "@/lib/utils/job-sources";
 
 export interface ResearchedJob {
   title: string;
@@ -15,6 +24,8 @@ export interface ResearchedJob {
   experienceLevel: string;
   salaryRange: string;
   sourceUrl: string;
+  /** True once the apply link has been reachability-checked. */
+  verified?: boolean;
 }
 
 export interface JobResearchResult {
@@ -63,18 +74,90 @@ Given raw model output, extract and return ONLY a valid JSON array of job object
 Each object must have at minimum: "title", "company".
 Return ONLY JSON, no explanations.`;
 
+const DISCOVERY_PROMPT = `You are a recruiting research planner.
+Given a candidate profile and their preferences, decide which REAL companies to target and WHERE their jobs are actually posted (official careers site or the ATS they use).
+
+Return ONLY valid JSON:
+{
+  "roles": ["specific role titles to search for"],
+  "companies": [
+    { "name": "Company", "careerDomain": "their official careers domain or ATS domain, e.g. careers.acme.com, boards.greenhouse.io, acme.wd1.myworkdayjobs.com" }
+  ]
+}
+
+Pick 6-10 real companies that actively hire this exact profile in the requested location.
+Use their REAL official careers domain or the ATS they use (Greenhouse, Lever, Workday, Ashby, SmartRecruiters, iCIMS).
+NEVER use aggregators (LinkedIn, Indeed, Google, Naukri, Glassdoor).
+Return ONLY the JSON object.`;
+
+/**
+ * Phase 1 — agentic discovery: identify target companies + the official
+ * career/ATS domains where their jobs actually live. Best-effort: on any
+ * failure it returns empty and the main search proceeds without hints.
+ */
+async function discoverTargets(
+  userPrompt: string
+): Promise<{ roles: string[]; domains: string[] }> {
+  const res = await callPerplexity(DISCOVERY_PROMPT, userPrompt, {
+    webSearchOptions: { search_context_size: "low" },
+    timeout: 30_000,
+  });
+  if (isPerplexityError(res)) return { roles: [], domains: [] };
+
+  const parsed = parseJsonResponse(res.content);
+  const obj = (parsed && parsed[0]) as Record<string, unknown> | undefined;
+  if (!obj) return { roles: [], domains: [] };
+
+  const roles = Array.isArray(obj.roles)
+    ? (obj.roles as unknown[]).map((r) => String(r).trim()).filter(Boolean)
+    : [];
+
+  const domains: string[] = [];
+  const companies = Array.isArray(obj.companies) ? (obj.companies as Record<string, unknown>[]) : [];
+  for (const c of companies) {
+    const host = toDomain(String(c.careerDomain || c.domain || c.url || ""));
+    if (host) domains.push(host);
+  }
+
+  return { roles, domains: dedupe(domains) };
+}
+
+/**
+ * Phase 3 — validate + rank: check every apply link is live, drop dead and
+ * aggregator links, and sort real ATS/official + verified postings first.
+ */
+async function validateAndRankJobs(jobs: ResearchedJob[]): Promise<ResearchedJob[]> {
+  const cleaned = dedupeAndClean(jobs).filter((j) => j.sourceUrl);
+
+  await Promise.all(
+    cleaned.map(async (j) => {
+      j.verified = await isReachable(j.sourceUrl);
+    })
+  );
+
+  // Keep links that are reachable, or that live on a known ATS / official
+  // careers page (those often block HEAD requests but are still real).
+  const kept = cleaned.filter((j) => {
+    const cls = classifySource(j.sourceUrl);
+    return j.verified || cls === "ats" || cls === "official";
+  });
+
+  return kept.sort((a, b) => sourceRank(b) - sourceRank(a));
+}
+
 /**
  * Search for job listings matching a candidate's profile.
  *
  * @param cvSummary - Condensed CV text (name, skills, experience, education)
  * @param customInstructions - Optional user constraints (e.g. "remote only", "in Bangalore")
+ * @param currentDate - ISO date for freshness context
  */
 export async function searchJobs(
   cvSummary: string,
   customInstructions: string = "",
   currentDate: string = ""
 ): Promise<JobResearchResult | { error: string }> {
-  const promptParts = [];
+  const promptParts: string[] = [];
 
   if (currentDate) {
     promptParts.push(`Today's date: ${currentDate}`, "");
@@ -91,19 +174,41 @@ export async function searchJobs(
     );
   }
 
-  promptParts.push(
+  const basePrompt = promptParts.join("\n");
+
+  // Phase 1 — agentic discovery of target companies + official domains.
+  const { roles, domains } = await discoverTargets(basePrompt);
+
+  // Scope the deep search to real career/ATS domains: discovered company
+  // domains first, then the top ATS boards, capped at Perplexity's 10-domain limit.
+  const domainFilter = dedupe([...domains, ...PREFERRED_ATS_BOARDS]).slice(0, 10);
+
+  const searchPrompt = [
+    basePrompt,
     "",
-    "Return only jobs that are currently open, recently posted, match the candidate's location and target role, and have a verified direct posting URL."
-  );
+    roles.length ? `Prioritise these roles: ${roles.slice(0, 6).join(", ")}.` : "",
+    domains.length
+      ? `Prefer official career pages on these domains: ${domains.slice(0, 8).join(", ")}.`
+      : "",
+    "Only return postings hosted on official company careers pages or ATS domains (Greenhouse, Lever, Workday, Ashby, SmartRecruiters, iCIMS). Never return aggregator or search-engine links.",
+    "Every job MUST have a direct, currently-live apply URL on such a page — drop any job you cannot link directly.",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  const userPrompt = promptParts.join("\n");
-
-  const result = await callPerplexity(SYSTEM_PROMPT, userPrompt, {
+  // Phase 2 — deep search restricted to real career/ATS domains.
+  let result = await callPerplexity(SYSTEM_PROMPT, searchPrompt, {
     webSearchOptions: { search_context_size: "high" },
+    searchDomainFilter: domainFilter,
+    timeout: 60_000,
   });
 
+  // If the domain-restricted search failed, retry once without the filter.
   if (isPerplexityError(result)) {
-    return result;
+    result = await callPerplexity(SYSTEM_PROMPT, searchPrompt, {
+      webSearchOptions: { search_context_size: "high" },
+    });
+    if (isPerplexityError(result)) return result;
   }
 
   // Parse JSON from response
@@ -127,15 +232,14 @@ export async function searchJobs(
     }
   }
 
-  // Normalize
-  const jobs = normalizeJobs(parsed as Record<string, unknown>[]);
+  // Normalize, then validate apply links and rank official/verified first.
+  const normalized = normalizeJobs(parsed as Record<string, unknown>[]);
+  const jobs = await validateAndRankJobs(normalized);
 
   if (jobs.length === 0) {
-    // Deliberately no citation fallback: generic "source" entries are not real
-    // matches and were the source of irrelevant results. Prefer an honest empty.
     return {
       error:
-        "No open jobs matched your location and target role. Try broadening the location or role keywords.",
+        "No open jobs with a verified apply link matched your location and target role. Try broadening the location or role keywords.",
     };
   }
 
