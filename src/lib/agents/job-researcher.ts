@@ -51,6 +51,10 @@ SOURCE URL (must match the job):
 - Do NOT return search-results/listing/aggregator pages or a search URL.
 - If you cannot provide a verified, direct, currently-live URL for a job, DROP that job entirely — do not include it with a guessed or search URL.
 
+DIVERSITY (spread across employers):
+- Return roles from MANY DIFFERENT companies — at most 2 roles per company.
+- Do not fill the list with one employer; aim for a variety of relevant companies.
+
 Return ONLY valid JSON — an array of job objects:
 [
   {
@@ -66,7 +70,7 @@ Return ONLY valid JSON — an array of job objects:
   }
 ]
 
-Return up to 10 jobs, but ONLY ones that pass every rule above. It is fine to return fewer (even 3-4) highly-relevant, verified, open roles.
+Return 15-20 jobs across DIFFERENT companies, but ONLY ones that pass every rule above. It is fine to return fewer if too few genuinely match.
 Return ONLY the JSON array, no markdown or explanation.`;
 
 const JSON_REPAIR_PROMPT = `You are a strict JSON formatter.
@@ -142,7 +146,68 @@ async function validateAndRankJobs(jobs: ResearchedJob[]): Promise<ResearchedJob
     return j.verified || cls === "ats" || cls === "official";
   });
 
-  return kept.sort((a, b) => sourceRank(b) - sourceRank(a));
+  const ranked = kept.sort((a, b) => sourceRank(b) - sourceRank(a));
+
+  // Enforce employer diversity: no single company may dominate the list.
+  // Keep the 3 best-ranked roles per company, then top up if we ended short.
+  const perCompany = new Map<string, number>();
+  const diverse: ResearchedJob[] = [];
+  const overflow: ResearchedJob[] = [];
+  for (const j of ranked) {
+    const key = j.company.trim().toLowerCase();
+    const count = perCompany.get(key) ?? 0;
+    if (count < 3) {
+      perCompany.set(key, count + 1);
+      diverse.push(j);
+    } else {
+      overflow.push(j);
+    }
+  }
+  return [...diverse, ...overflow];
+}
+
+/**
+ * One deep-search pass: query Perplexity (optionally scoped to a domain list),
+ * parse the JSON (with a repair fallback), and return normalized jobs.
+ * Returns { jobs, citations }; jobs is [] on failure so callers can merge passes.
+ */
+async function runOneSearch(
+  searchPrompt: string,
+  domainFilter?: string[]
+): Promise<{ jobs: ResearchedJob[]; citations: string[] }> {
+  let result = await callPerplexity(SYSTEM_PROMPT, searchPrompt, {
+    webSearchOptions: { search_context_size: "high" },
+    ...(domainFilter && domainFilter.length ? { searchDomainFilter: domainFilter } : {}),
+    timeout: 60_000,
+  });
+
+  // If a domain-restricted search failed, retry once without the filter.
+  if (isPerplexityError(result) && domainFilter && domainFilter.length) {
+    result = await callPerplexity(SYSTEM_PROMPT, searchPrompt, {
+      webSearchOptions: { search_context_size: "high" },
+      timeout: 60_000,
+    });
+  }
+  if (isPerplexityError(result)) return { jobs: [], citations: [] };
+
+  let parsed = parseJsonResponse(result.content);
+
+  // JSON repair fallback.
+  if (!parsed) {
+    const repair = await callPerplexity(
+      JSON_REPAIR_PROMPT,
+      `Convert the following content into a valid JSON array of job objects. Return ONLY JSON.\n\n${result.content}`,
+      { temperature: 0.0 }
+    );
+    if (isPerplexityError(repair)) return { jobs: [], citations: result.citations };
+    parsed = parseJsonResponse(repair.content);
+  }
+  if (!parsed) return { jobs: [], citations: result.citations };
+
+  return {
+    jobs: normalizeJobs(parsed as Record<string, unknown>[]),
+    citations: result.citations,
+  };
 }
 
 /**
@@ -179,10 +244,6 @@ export async function searchJobs(
   // Phase 1 — agentic discovery of target companies + official domains.
   const { roles, domains } = await discoverTargets(basePrompt);
 
-  // Scope the deep search to real career/ATS domains: discovered company
-  // domains first, then the top ATS boards, capped at Perplexity's 10-domain limit.
-  const domainFilter = dedupe([...domains, ...PREFERRED_ATS_BOARDS]).slice(0, 10);
-
   const searchPrompt = [
     basePrompt,
     "",
@@ -192,49 +253,34 @@ export async function searchJobs(
       : "",
     "Only return postings hosted on official company careers pages or ATS domains (Greenhouse, Lever, Workday, Ashby, SmartRecruiters, iCIMS). Never return aggregator or search-engine links.",
     "Every job MUST have a direct, currently-live apply URL on such a page — drop any job you cannot link directly.",
+    "Return roles from MANY DIFFERENT companies — at most 3 per company. Cover a wide variety of employers.",
   ]
     .filter(Boolean)
     .join("\n");
 
-  // Phase 2 — deep search restricted to real career/ATS domains.
-  let result = await callPerplexity(SYSTEM_PROMPT, searchPrompt, {
-    webSearchOptions: { search_context_size: "high" },
-    searchDomainFilter: domainFilter,
-    timeout: 60_000,
-  });
+  // Phase 2 — two parallel deep searches to widen coverage:
+  //  (A) scoped to the discovered company career domains,
+  //  (B) scoped to the top ATS boards.
+  // Merging both yields more real, diverse postings than a single 10-domain pass.
+  const companyFilter = dedupe(domains).slice(0, 10);
+  const atsFilter = dedupe([...PREFERRED_ATS_BOARDS, ...domains]).slice(0, 10);
 
-  // If the domain-restricted search failed, retry once without the filter.
-  if (isPerplexityError(result)) {
-    result = await callPerplexity(SYSTEM_PROMPT, searchPrompt, {
-      webSearchOptions: { search_context_size: "high" },
-    });
-    if (isPerplexityError(result)) return result;
+  const passes = await Promise.all([
+    runOneSearch(searchPrompt, companyFilter.length ? companyFilter : atsFilter),
+    runOneSearch(searchPrompt, atsFilter),
+  ]);
+
+  const rawJobs = passes.flatMap((p) => p.jobs);
+  const citations = dedupe(passes.flatMap((p) => p.citations));
+
+  if (rawJobs.length === 0) {
+    return {
+      error: "Job search failed: the AI research service did not return results. Please try again.",
+    };
   }
 
-  // Parse JSON from response
-  let parsed = parseJsonResponse(result.content);
-
-  // JSON repair fallback
-  if (!parsed) {
-    const repair = await callPerplexity(
-      JSON_REPAIR_PROMPT,
-      `Convert the following content into a valid JSON array of job objects. Return ONLY JSON.\n\n${result.content}`,
-      { temperature: 0.0 }
-    );
-
-    if (isPerplexityError(repair)) {
-      return { error: "Failed to parse job results: AI returned invalid JSON and repair failed." };
-    }
-
-    parsed = parseJsonResponse(repair.content);
-    if (!parsed) {
-      return { error: "Failed to parse job results: AI returned invalid JSON." };
-    }
-  }
-
-  // Normalize, then validate apply links and rank official/verified first.
-  const normalized = normalizeJobs(parsed as Record<string, unknown>[]);
-  const jobs = await validateAndRankJobs(normalized);
+  // Validate apply links and rank official/verified first (dedupes across passes).
+  const jobs = await validateAndRankJobs(rawJobs);
 
   if (jobs.length === 0) {
     return {
@@ -243,7 +289,7 @@ export async function searchJobs(
     };
   }
 
-  return { jobs, citations: result.citations };
+  return { jobs, citations };
 }
 
 function normalizeJobs(items: Record<string, unknown>[]): ResearchedJob[] {
