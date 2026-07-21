@@ -16,11 +16,28 @@ const JOB_EVAL_PROMPT = `${TRUST_BOUNDARY}
 
 You are a career evaluation expert. Given a job posting/description and a candidate's CV summary, produce a structured evaluation.
 
+ELIGIBILITY GATE (assess first): Read the posting's work-rights / "who can apply" wording.
+- REQUIRES citizenship, permanent residency, an existing work permit the candidate may lack, or a security clearance -> workAuthorization = "FAIL" (quote the exact wording as evidence).
+- Explicitly welcomes international/visa applicants or offers sponsorship -> "PASS".
+- SILENT on work rights -> "UNVERIFIED" (candidate should confirm on the employer's own site).
+If workAuthorization is "FAIL", still return the full report but set "recommendation" to "skip".
+
+WEIGHTED SCORING: Technical 30%, Experience 25%, Behavioral/Culture 15%, Career Alignment 30%. Location is PASS/FAIL/FLAG (a FAIL requiring relocation the candidate cannot do is a deal-breaker). Compute weightedScore (0-100) and map to a verdict: Strong Fit 75+, Good Fit 60-74, Moderate Fit 45-59, Weak Fit 30-44, Poor Fit <30.
+Set "overallScore" = weightedScore/100 and "recommendation": strong_match if >=75, good_match if 60-74, weak_match if 30-59, skip if <30 (or eligibility FAIL).
+
 Return ONLY valid JSON with this structure:
 {
   "overallScore": 0.0-1.0 (how well the candidate matches),
   "recommendation": "strong_match" | "good_match" | "weak_match" | "skip",
   "blocks": [
+    {
+      "title": "Eligibility",
+      "content": {
+        "workAuthorization": "PASS|FAIL|UNVERIFIED",
+        "evidence": "exact posting wording that decided this, or 'silent on work rights'",
+        "note": "one-line honest guidance for the candidate"
+      }
+    },
     {
       "title": "Role Summary",
       "content": {
@@ -31,6 +48,18 @@ Return ONLY valid JSON with this structure:
         "location": "...",
         "domain": "...",
         "tldr": "2-sentence summary of the role"
+      }
+    },
+    {
+      "title": "Fit Breakdown",
+      "content": {
+        "technicalMatch": "XX/100",
+        "experienceMatch": "XX/100",
+        "behavioralFit": "XX/100",
+        "careerAlignment": "XX/100",
+        "location": "PASS|FAIL|FLAG — brief note",
+        "weightedScore": "XX/100",
+        "verdict": "Strong Fit|Good Fit|Moderate Fit|Weak Fit|Poor Fit"
       }
     },
     {
@@ -171,19 +200,30 @@ Evaluate how well this candidate matches this ${isAcademic ? "academic opportuni
     const validRecs = ["strong_match", "good_match", "weak_match", "skip"] as const;
     const rec = String(raw.recommendation || "weak_match");
 
+    const blocks = Array.isArray(raw.blocks)
+      ? raw.blocks.map((b: Record<string, unknown>) => ({
+          title: String(b.title || "Untitled"),
+          content: (typeof b.content === "object" && b.content !== null)
+            ? (b.content as Record<string, unknown>)
+            : {},
+        }))
+      : [];
+
+    let recommendation: EvaluationReport["recommendation"] = validRecs.includes(
+      rec as typeof validRecs[number]
+    )
+      ? (rec as EvaluationReport["recommendation"])
+      : "weak_match";
+
+    // Defensive gate: a work-authorization FAIL is a hard stop regardless of score.
+    const eligibility = blocks.find((b) => b.title.toLowerCase() === "eligibility");
+    const workAuth = String(eligibility?.content?.workAuthorization ?? "").toUpperCase();
+    if (workAuth.includes("FAIL")) recommendation = "skip";
+
     return {
       overallScore: Math.max(0, Math.min(1, Number(raw.overallScore) || 0.5)),
-      recommendation: validRecs.includes(rec as typeof validRecs[number])
-        ? (rec as EvaluationReport["recommendation"])
-        : "weak_match",
-      blocks: Array.isArray(raw.blocks)
-        ? raw.blocks.map((b: Record<string, unknown>) => ({
-            title: String(b.title || "Untitled"),
-            content: (typeof b.content === "object" && b.content !== null)
-              ? (b.content as Record<string, unknown>)
-              : {},
-          }))
-        : [],
+      recommendation,
+      blocks,
     };
   },
 
