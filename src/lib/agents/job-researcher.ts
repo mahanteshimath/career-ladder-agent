@@ -7,6 +7,7 @@ import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
 import { computeFitScore } from "@/lib/utils/fit-score";
 import { TRUST_BOUNDARY } from "@/lib/agents/safety";
+import { searchFreehire, filterByLocationHint } from "./freehire-source";
 import {
   classifySource,
   dedupe,
@@ -288,20 +289,26 @@ export async function searchJobs(
     .filter(Boolean)
     .join("\n");
 
-  // Phase 2 — two parallel deep searches to widen coverage:
-  //  (A) scoped to the discovered company career domains,
-  //  (B) scoped to the top ATS boards.
-  // Merging both yields more real, diverse postings than a single 10-domain pass.
+  // Phase 2 — three parallel live-jobs sources to widen coverage:
+  //  (A) Perplexity deep search scoped to discovered company career domains,
+  //  (B) Perplexity deep search scoped to the top ATS boards,
+  //  (C) freehire.dev structured API (real, indexed postings; best-effort).
+  // Merging all three yields more real, diverse postings than any single pass.
   const companyFilter = dedupe(domains).slice(0, 10);
   const atsFilter = dedupe([...PREFERRED_ATS_BOARDS, ...domains]).slice(0, 10);
+  const freehireQuery = (roles.slice(0, 2).join(" ") || instructions.split(/[.,\n]/)[0] || "").slice(0, 80);
 
-  const passes = await Promise.all([
+  const [passA, passB, freehireRaw] = await Promise.all([
     runOneSearch(searchPrompt, companyFilter.length ? companyFilter : atsFilter),
     runOneSearch(searchPrompt, atsFilter),
+    searchFreehire(freehireQuery, { limit: 25, postedWithinDays: 45 }),
   ]);
 
-  const rawJobs = passes.flatMap((p) => p.jobs);
-  const citations = dedupe(passes.flatMap((p) => p.citations));
+  // Keep only freehire jobs matching the user's requested location (if any).
+  const freehireJobs = filterByLocationHint(freehireRaw, instructions);
+
+  const rawJobs = [...passA.jobs, ...passB.jobs, ...freehireJobs];
+  const citations = dedupe([...passA.citations, ...passB.citations]);
 
   if (rawJobs.length === 0) {
     return {
