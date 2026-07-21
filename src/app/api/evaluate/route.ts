@@ -6,6 +6,7 @@ import { orchestrate } from "@/lib/agents/orchestrator";
 import { getAuthenticatedUser, badRequest, serverError } from "@/lib/api-response";
 import { getUserCvs, getUserProfile, insertEvaluation } from "@/lib/snowflake/queries";
 import { buildCvSummary } from "@/lib/utils/cv-summary";
+import { keywordCoverage } from "@/lib/utils/keyword-coverage";
 
 const evaluateSchema = z.object({
   inputContent: z.string().min(20, "Provide at least 20 characters of content to evaluate"),
@@ -84,6 +85,25 @@ export async function POST(req: NextRequest) {
 
     // Persist the evaluation
     const evalData = result.data as Record<string, unknown>;
+
+    // Deterministic ATS keyword coverage (no LLM) — only when we have the JD
+    // text on hand (pasted job description) and it's an industry role.
+    if (inputType === "text" && targetType === "job" && Array.isArray(evalData.blocks)) {
+      const cov = keywordCoverage(cvSummary, inputContent);
+      if (cov.jdKeywordCount > 0) {
+        (evalData.blocks as Record<string, unknown>[]).push({
+          title: "ATS Keyword Coverage",
+          content: {
+            coverage: `${cov.coveragePct}% (${cov.matched.length}/${cov.jdKeywordCount} JD keywords found in your CV)`,
+            inYourCv: cov.matched,
+            missingFromCv: cov.missing,
+            note: cov.missing.length
+              ? "Add the missing keywords to your CV only where you genuinely have them — never keyword-stuff."
+              : "Strong literal keyword coverage for this posting.",
+          },
+        });
+      }
+    }
     await insertEvaluation({
       userId,
       cvId: cvId || undefined,
