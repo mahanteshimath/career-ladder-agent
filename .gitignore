@@ -43,6 +43,7 @@ next-env.d.ts
 
 # logs
 snowflake.log
+build.log
 
 # agent skills (installed via `skills add`, not part of the app)
 .agents/
