@@ -5,6 +5,8 @@
 
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
+import { computeFitScore } from "@/lib/utils/fit-score";
+import { TRUST_BOUNDARY } from "@/lib/agents/safety";
 import {
   classifySource,
   dedupe,
@@ -26,6 +28,10 @@ export interface ResearchedJob {
   sourceUrl: string;
   /** True once the apply link has been reachability-checked. */
   verified?: boolean;
+  /** Application deadline (YYYY-MM-DD) if the posting states one. */
+  deadline?: string;
+  /** 0-100 CV↔job fit from required-skill overlap; higher = more relevant. */
+  fitScore?: number;
 }
 
 export interface JobResearchResult {
@@ -33,7 +39,9 @@ export interface JobResearchResult {
   citations: string[];
 }
 
-const SYSTEM_PROMPT = `You are a job market research specialist.
+const SYSTEM_PROMPT = `${TRUST_BOUNDARY}
+
+You are a job market research specialist.
 Given a candidate's profile and their stated preferences, find REAL, CURRENTLY-OPEN job listings.
 
 RELEVANCE (treat the candidate's stated preferences as HARD filters):
@@ -66,6 +74,7 @@ Return ONLY valid JSON — an array of job objects:
     "experience_level": "Entry/Mid/Senior",
     "salary_range": "If available, otherwise empty string",
     "posted_date": "Approx posting date YYYY-MM or 'recent' if unknown",
+    "application_deadline": "Application deadline as YYYY-MM-DD if the posting states one, otherwise empty string",
     "source_url": "Direct URL to this exact job posting"
   }
 ]
@@ -126,11 +135,24 @@ async function discoverTargets(
   return { roles, domains: dedupe(domains) };
 }
 
+/** Parse a YYYY-MM-DD deadline and return true if it is strictly before `today` (YYYY-MM-DD). */
+export function isDeadlinePassed(deadline: string | undefined, today: string): boolean {
+  if (!deadline) return false;
+  const m = deadline.trim().match(/\d{4}-\d{2}-\d{2}/);
+  if (!m) return false; // non-date shapes (e.g. "Open until filled") are not expiry signals
+  return m[0] < today;
+}
+
 /**
- * Phase 3 — validate + rank: check every apply link is live, drop dead and
- * aggregator links, and sort real ATS/official + verified postings first.
+ * Phase 3 — validate + rank: check every apply link is live, drop dead,
+ * aggregator, and past-deadline postings, then sort real ATS/official +
+ * verified postings first and, within that, by CV↔job fit.
  */
-async function validateAndRankJobs(jobs: ResearchedJob[]): Promise<ResearchedJob[]> {
+async function validateAndRankJobs(
+  jobs: ResearchedJob[],
+  cvSummary: string,
+  today: string
+): Promise<ResearchedJob[]> {
   const cleaned = dedupeAndClean(jobs).filter((j) => j.sourceUrl);
 
   // Check each apply link's real liveness (not just HTTP reachability).
@@ -138,18 +160,23 @@ async function validateAndRankJobs(jobs: ResearchedJob[]): Promise<ResearchedJob
     cleaned.map(async (j) => ({ job: j, status: await verifyJobLink(j.sourceUrl) }))
   );
 
-  // Drop confirmed-dead links. Keep live ones (green badge), plus links we
-  // couldn't judge that still live on a known ATS / official careers page
-  // (those often block bots but are usually real).
+  // Drop confirmed-dead links and postings whose application deadline has
+  // passed. Keep live ones (green badge), plus links we couldn't judge that
+  // still live on a known ATS / official careers page (often bot-blocked but real).
   const kept: ResearchedJob[] = [];
   for (const { job, status } of checked) {
     if (status === "dead") continue;
+    if (isDeadlinePassed(job.deadline, today)) continue;
     job.verified = status === "live";
+    job.fitScore = computeFitScore(job.requiredSkills, cvSummary);
     const cls = classifySource(job.sourceUrl);
     if (status === "live" || cls === "ats" || cls === "official") kept.push(job);
   }
 
-  const ranked = kept.sort((a, b) => sourceRank(b) - sourceRank(a));
+  // Rank: live/official/verified first, then by CV↔job fit.
+  const ranked = kept.sort(
+    (a, b) => sourceRank(b) - sourceRank(a) || (b.fitScore ?? 0) - (a.fitScore ?? 0)
+  );
 
   // Enforce employer diversity: no single company may dominate the list.
   // Keep the 3 best-ranked roles per company, then top up if we ended short.
@@ -283,7 +310,11 @@ export async function searchJobs(
   }
 
   // Validate apply links and rank official/verified first (dedupes across passes).
-  const jobs = await validateAndRankJobs(rawJobs);
+  const jobs = await validateAndRankJobs(
+    rawJobs,
+    cvSummary,
+    (currentDate || new Date().toISOString()).slice(0, 10)
+  );
 
   if (jobs.length === 0) {
     return {
@@ -326,6 +357,7 @@ function normalizeJobs(items: Record<string, unknown>[]): ResearchedJob[] {
       experienceLevel: pickFirst(item, ["experience_level", "seniority", "level"]),
       salaryRange: pickFirst(item, ["salary_range", "salary", "compensation"]),
       sourceUrl: pickFirst(item, ["source_url", "url", "link", "apply_url"]),
+      deadline: pickFirst(item, ["application_deadline", "deadline", "apply_by", "closing_date"]),
     });
   }
 

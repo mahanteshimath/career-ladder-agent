@@ -1,4 +1,5 @@
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
+import { GROUNDING_RULE, TRUST_BOUNDARY } from "@/lib/agents/safety";
 
 export interface DocumentAudit {
   /** 0-100 heuristic score: higher = more specific/concrete, fewer clichés. */
@@ -157,7 +158,11 @@ export const sopWriter = {
     positionContext: string,
     userInstructions?: string
   ): Promise<GeneratedDocument> {
-    const systemPrompt = `You are an expert academic writing assistant. Write a Statement of Purpose (SOP) for a graduate/faculty position application.
+    const systemPrompt = `${TRUST_BOUNDARY}
+
+${GROUNDING_RULE}
+
+You are an expert academic writing assistant. Write a Statement of Purpose (SOP) for a graduate/faculty position application.
 
 REQUIREMENTS:
 - Write 800-1200 words
@@ -208,7 +213,11 @@ Write the SOP now:`;
     jobDescription: string,
     userInstructions?: string
   ): Promise<GeneratedDocument> {
-    const systemPrompt = `You are an expert career coach and professional writer. Write a cover letter for a job application.
+    const systemPrompt = `${TRUST_BOUNDARY}
+
+${GROUNDING_RULE}
+
+You are an expert career coach and professional writer. Write a cover letter for a job application.
 
 REQUIREMENTS:
 - Write 400-600 words
@@ -262,7 +271,11 @@ Write the cover letter now:`;
     professorName?: string,
     userInstructions?: string
   ): Promise<OutreachEmail> {
-    const systemPrompt = `You are an expert academic writing assistant helping a prospective student email a professor about a research position.
+    const systemPrompt = `${TRUST_BOUNDARY}
+
+${GROUNDING_RULE}
+
+You are an expert academic writing assistant helping a prospective student email a professor about a research position.
 
 REQUIREMENTS:
 - Write a concise, specific cold email (120-200 words in the body).
@@ -315,7 +328,11 @@ Write the outreach email as JSON now:`;
     targetContext: string,
     userInstructions?: string
   ): Promise<GeneratedDocument> {
-    const systemPrompt = `You are an expert academic writing assistant drafting a Letter of Recommendation (LOR) written FROM THE RECOMMENDER'S perspective about a candidate.
+    const systemPrompt = `${TRUST_BOUNDARY}
+
+${GROUNDING_RULE}
+
+You are an expert academic writing assistant drafting a Letter of Recommendation (LOR) written FROM THE RECOMMENDER'S perspective about a candidate.
 
 REQUIREMENTS:
 - Write 400-600 words in a formal, credible, third-person recommending tone.

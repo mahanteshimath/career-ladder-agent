@@ -1,6 +1,7 @@
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { isPerplexityConfigured } from "@/lib/perplexity/config";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
+import { TRUST_BOUNDARY } from "@/lib/agents/safety";
 
 export interface EvaluationReport {
   overallScore: number;
@@ -11,7 +12,9 @@ export interface EvaluationReport {
   }[];
 }
 
-const JOB_EVAL_PROMPT = `You are a career evaluation expert. Given a job posting/description and a candidate's CV summary, produce a structured evaluation.
+const JOB_EVAL_PROMPT = `${TRUST_BOUNDARY}
+
+You are a career evaluation expert. Given a job posting/description and a candidate's CV summary, produce a structured evaluation.
 
 Return ONLY valid JSON with this structure:
 {

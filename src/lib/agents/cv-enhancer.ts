@@ -1,5 +1,6 @@
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
+import { GROUNDING_RULE } from "@/lib/agents/safety";
 
 export interface EnhancedCvSections {
   summary: string;
@@ -17,7 +18,9 @@ export const cvEnhancer = {
     skills: string[],
     targetRole?: string
   ): Promise<EnhancedCvSections> {
-    const systemPrompt = `You are an expert resume/CV writer. Enhance CV content to be more impactful, professional, and ATS-friendly.
+    const systemPrompt = `${GROUNDING_RULE}
+
+You are an expert resume/CV writer. Enhance CV content to be more impactful, professional, and ATS-friendly.
 
 INSTRUCTIONS:
 1. Rewrite the summary to be compelling and concise (2-3 sentences max)

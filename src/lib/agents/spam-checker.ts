@@ -1,5 +1,6 @@
 import { callPerplexity, isPerplexityError } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
+import { TRUST_BOUNDARY } from "@/lib/agents/safety";
 
 export interface SpamCheckResult {
   score: number; // 0 (legitimate) to 10 (spam)
@@ -19,7 +20,9 @@ export async function checkJobPostSpam(post: {
   applyUrl: string;
   posterEmail: string;
 }): Promise<SpamCheckResult> {
-  const systemPrompt = `You are a job post spam detector for a career services platform. Evaluate job posts for legitimacy.
+  const systemPrompt = `${TRUST_BOUNDARY}
+
+You are a job post spam detector for a career services platform. Evaluate job posts for legitimacy.
 
 Evaluate based on:
 1. Is the job title realistic and specific?

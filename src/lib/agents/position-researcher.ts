@@ -5,6 +5,7 @@
 
 import { callPerplexity, isPerplexityError, type PerplexityResult } from "@/lib/perplexity/client";
 import { parseJsonResponse } from "@/lib/perplexity/json-utils";
+import { TRUST_BOUNDARY } from "@/lib/agents/safety";
 
 export interface ResearchedPosition {
   title: string;
@@ -25,7 +26,9 @@ export interface PositionResearchResult {
   citations: string[];
 }
 
-const SYSTEM_PROMPT = `You are a university position research specialist.
+const SYSTEM_PROMPT = `${TRUST_BOUNDARY}
+
+You are a university position research specialist.
 Given a candidate's profile and search criteria, find REAL, CURRENT university positions (Masters, PhD, Postdoc, or Research Assistant) that match their background.
 
 Search for positions that:
